@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NCT Safety Training Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0f1a;font-family:'Arial Narrow',Arial,sans-serif;color:#e8edf5;min-height:100vh}
+select option{background:#111d2e;color:#fff}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0f1a}
+::-webkit-scrollbar-thumb{background:#1a2d4a;border-radius:3px}
+iframe{display:block}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const WEBHOOK_URL = "https://default59a06fc107724344afce14075904b7.6b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/349cf3a37e9b46239c9169ad2d3de5fd/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=BtRxY-o0u5ADtknmZbQRBEWSBkGVDRT2mkhH_FQnuAc";
+
+async function submitResult(data) {
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        employeeName: data.employeeName,
+        location:     data.location,
+        bucket:       data.bucket,
+        videoTitle:   data.videoTitle,
+        score:        data.score,
+        passFail:     data.passFail,
+        date:         data.date
+      })
+    });
+    if (res.ok || res.status === 202) return { success: true };
+    throw new Error("HTTP " + res.status);
+  } catch(e) {
+    console.error("Webhook error:", e);
+    return { success: false, error: e.message };
+  }
+}
+
+const QUIZZES = {
+  1: {
+    title: 'Crown DP MoveSafe® Forklift Operator Training',
+    questions: [
+      { q: 'What is a core goal of forklift or reach-truck safety?', options: ['Move faster than everyone else', 'Prevent struck-by, tip-over, and load-handling incidents', 'Reduce inspections', 'Avoid reporting damage'], correct: 1 },
+      { q: 'Why is speed control important on lift trucks?', options: ['Speed reduces operator effort', 'Higher speed reduces reaction time and increases incident severity', 'Speed only matters outdoors', 'Experienced operators can ignore it'], correct: 1 },
+      { q: 'What should an operator do before moving?', options: ['Assume the path is clear', 'Check surroundings, travel path, and load condition', 'Raise the load high for visibility', 'Rely only on the horn'], correct: 1 },
+      { q: 'What is a key rule if the machine tips or becomes unstable?', options: ['Jump clear as fast as possible', 'Follow the equipment\'s safe-position guidance and stay protected in the operator area when applicable', 'Turn sharply to correct it', 'Raise the load higher'], correct: 1 },
+      { q: 'Why do pedestrians matter so much around lift trucks?', options: ['Shared spaces create high struck-by risk when visibility and separation are poor', 'Pedestrians can always hear the truck', 'Pedestrians are responsible for all separation', 'Pedestrian risk only exists in warehouses'], correct: 0 },
+      { q: 'What is one strong control around lift-truck traffic?', options: ['Physical separation, marked routes, and clear communication', 'Faster reversing', 'Higher loads for better awareness', 'Informal hand signals only'], correct: 0 },
+      { q: 'What should an operator do if the load blocks forward vision?', options: ['Drive normally', 'Adjust the travel method safely and follow site rules for visibility', 'Lean out farther while moving', 'Ignore nearby pedestrians'], correct: 1 },
+      { q: 'Why does seat-belt or restraint use matter on some forklifts?', options: ['It helps keep the operator in the protected zone during a tip-over event', 'It improves fuel economy', 'It only matters at high speed', 'It is optional in short tasks'], correct: 0 },
+      { q: 'What is one sign of unsafe truck operation?', options: ['Blind travel, rushing, or operating without clear separation from pedestrians', 'Checking the route', 'Using site rules', 'Lowering speed in congested areas'], correct: 0 },
+      { q: 'What is the best overall message from forklift safety training?', options: ['Operate in control, manage visibility, separate from pedestrians, and never take shortcuts', 'Productivity matters more than control', 'Only new operators need rules', 'Close calls are part of the job'], correct: 0 },
+    ]
+  },
+  2: {
+    title: 'Forklift Safety: Pedestrians around Lift Trucks',
+    questions: [
+      { q: 'What is a core goal of forklift or reach-truck safety?', options: ['Move faster than everyone else', 'Prevent struck-by, tip-over, and load-handling incidents', 'Reduce inspections', 'Avoid reporting damage'], correct: 1 },
+      { q: 'Why is speed control important on lift trucks?', options: ['Speed reduces operator effort', 'Higher speed reduces reaction time and increases incident severity', 'Speed only matters outdoors', 'Experienced operators can ignore it'], correct: 1 },
+      { q: 'What should an operator do before moving?', options: ['Assume the path is clear', 'Check surroundings, travel path, and load condition', 'Raise the load high for visibility', 'Rely only on the horn'], correct: 1 },
+      { q: 'What is a key rule if the machine tips or becomes unstable?', options: ['Jump clear as fast as possible', 'Follow the equipment\'s safe-position guidance and stay protected in the operator area when applicable', 'Turn sharply to correct it', 'Raise the load higher'], correct: 1 },
+      { q: 'Why do pedestrians matter so much around lift trucks?', options: ['Shared spaces create high struck-by risk when visibility and separation are poor', 'Pedestrians can always hear the truck', 'Pedestrians are responsible for all separation', 'Pedestrian risk only exists in warehouses'], correct: 0 },
+      { q: 'What is one strong control around lift-truck traffic?', options: ['Physical separation, marked routes, and clear communication', 'Faster reversing', 'Higher loads for better awareness', 'Informal hand signals only'], correct: 0 },
+      { q: 'What should an operator do if the load blocks forward vision?', options: ['Drive normally', 'Adjust the travel method safely and follow site rules for visibility', 'Lean out farther while moving', 'Ignore nearby pedestrians'], correct: 1 },
+      { q: 'Why does seat-belt or restraint use matter on some forklifts?', options: ['It helps keep the operator in the protected zone during a tip-over event', 'It improves fuel economy', 'It only matters at high speed', 'It is optional in short tasks'], correct: 0 },
+      { q: 'What is one sign of unsafe truck operation?', options: ['Blind travel, rushing, or operating without clear separation from pedestrians', 'Checking the route', 'Using site rules', 'Lowering speed in congested areas'], correct: 0 },
+      { q: 'What is the best overall message from forklift safety training?', options: ['Operate in control, manage visibility, separate from pedestrians, and never take shortcuts', 'Productivity matters more than control', 'Only new operators need rules', 'Close calls are part of the job'], correct: 0 },
+    ]
+  },
+  3: {
+    title: 'Forklift Safety: Stay in the Cab, Stay Alive',
+    questions: [
+      { q: 'What is a core goal of forklift or reach-truck safety?', options: ['Move faster than everyone else', 'Prevent struck-by, tip-over, and load-handling incidents', 'Reduce inspections', 'Avoid reporting damage'], correct: 1 },
+      { q: 'Why is speed control important on lift trucks?', options: ['Speed reduces operator effort', 'Higher speed reduces reaction time and increases incident severity', 'Speed only matters outdoors', 'Experienced operators can ignore it'], correct: 1 },
+      { q: 'What should an operator do before moving?', options: ['Assume the path is clear', 'Check surroundings, travel path, and load condition', 'Raise the load high for visibility', 'Rely only on the horn'], correct: 1 },
+      { q: 'What is a key rule if the machine tips or becomes unstable?', options: ['Jump clear as fast as possible', 'Follow the equipment\'s safe-position guidance and stay protected in the operator area when applicable', 'Turn sharply to correct it', 'Raise the load higher'], correct: 1 },
+      { q: 'Why do pedestrians matter so much around lift trucks?', options: ['Shared spaces create high struck-by risk when visibility and separation are poor', 'Pedestrians can always hear the truck', 'Pedestrians are responsible for all separation', 'Pedestrian risk only exists in warehouses'], correct: 0 },
+      { q: 'What is one strong control around lift-truck traffic?', options: ['Physical separation, marked routes, and clear communication', 'Faster reversing', 'Higher loads for better awareness', 'Informal hand signals only'], correct: 0 },
+      { q: 'What should an operator do if the load blocks forward vision?', options: ['Drive normally', 'Adjust the travel method safely and follow site rules for visibility', 'Lean out farther while moving', 'Ignore nearby pedestrians'], correct: 1 },
+      { q: 'Why does seat-belt or restraint use matter on some forklifts?', options: ['It helps keep the operator in the protected zone during a tip-over event', 'It improves fuel economy', 'It only matters at high speed', 'It is optional in short tasks'], correct: 0 },
+      { q: 'What is one sign of unsafe truck operation?', options: ['Blind travel, rushing, or operating without clear separation from pedestrians', 'Checking the route', 'Using site rules', 'Lowering speed in congested areas'], correct: 0 },
+      { q: 'What is the best overall message from forklift safety training?', options: ['Operate in control, manage visibility, separate from pedestrians, and never take shortcuts', 'Productivity matters more than control', 'Only new operators need rules', 'Close calls are part of the job'], correct: 0 },
+    ]
+  },
+  4: {
+    title: 'Raymond 4250 Forklift Safety Video',
+    questions: [
+      { q: 'What is a core goal of forklift or reach-truck safety?', options: ['Move faster than everyone else', 'Prevent struck-by, tip-over, and load-handling incidents', 'Reduce inspections', 'Avoid reporting damage'], correct: 1 },
+      { q: 'Why is speed control important on lift trucks?', options: ['Speed reduces operator effort', 'Higher speed reduces reaction time and increases incident severity', 'Speed only matters outdoors', 'Experienced operators can ignore it'], correct: 1 },
+      { q: 'What should an operator do before moving?', options: ['Assume the path is clear', 'Check surroundings, travel path, and load condition', 'Raise the load high for visibility', 'Rely only on the horn'], correct: 1 },
+      { q: 'What is a key rule if the machine tips or becomes unstable?', options: ['Jump clear as fast as possible', 'Follow the equipment\'s safe-position guidance and stay protected in the operator area when applicable', 'Turn sharply to correct it', 'Raise the load higher'], correct: 1 },
+      { q: 'Why do pedestrians matter so much around lift trucks?', options: ['Shared spaces create high struck-by risk when visibility and separation are poor', 'Pedestrians can always hear the truck', 'Pedestrians are responsible for all separation', 'Pedestrian risk only exists in warehouses'], correct: 0 },
+      { q: 'What is one strong control around lift-truck traffic?', options: ['Physical separation, marked routes, and clear communication', 'Faster reversing', 'Higher loads for better awareness', 'Informal hand signals only'], correct: 0 },
+      { q: 'What should an operator do if the load blocks forward vision?', options: ['Drive normally', 'Adjust the travel method safely and follow site rules for visibility', 'Lean out farther while moving', 'Ignore nearby pedestrians'], correct: 1 },
+      { q: 'Why does seat-belt or restraint use matter on some forklifts?', options: ['It helps keep the operator in the protected zone during a tip-over event', 'It improves fuel economy', 'It only matters at high speed', 'It is optional in short tasks'], correct: 0 },
+      { q: 'What is one sign of unsafe truck operation?', options: ['Blind travel, rushing, or operating without clear separation from pedestrians', 'Checking the route', 'Using site rules', 'Lowering speed in congested areas'], correct: 0 },
+      { q: 'What is the best overall message from forklift safety training?', options: ['Operate in control, manage visibility, separate from pedestrians, and never take shortcuts', 'Productivity matters more than control', 'Only new operators need rules', 'Close calls are part of the job'], correct: 0 },
+    ]
+  },
+  5: {
+    title: 'Raymond Reach Truck | Basic Training Supplement',
+    questions: [
+      { q: 'What is a core goal of forklift or reach-truck safety?', options: ['Move faster than everyone else', 'Prevent struck-by, tip-over, and load-handling incidents', 'Reduce inspections', 'Avoid reporting damage'], correct: 1 },
+      { q: 'Why is speed control important on lift trucks?', options: ['Speed reduces operator effort', 'Higher speed reduces reaction time and increases incident severity', 'Speed only matters outdoors', 'Experienced operators can ignore it'], correct: 1 },
+      { q: 'What should an operator do before moving?', options: ['Assume the path is clear', 'Check surroundings, travel path, and load condition', 'Raise the load high for visibility', 'Rely only on the horn'], correct: 1 },
+      { q: 'What is a key rule if the machine tips or becomes unstable?', options: ['Jump clear as fast as possible', 'Follow the equipment\'s safe-position guidance and stay protected in the operator area when applicable', 'Turn sharply to correct it', 'Raise the load higher'], correct: 1 },
+      { q: 'Why do pedestrians matter so much around lift trucks?', options: ['Shared spaces create high struck-by risk when visibility and separation are poor', 'Pedestrians can always hear the truck', 'Pedestrians are responsible for all separation', 'Pedestrian risk only exists in warehouses'], correct: 0 },
+      { q: 'What is one strong control around lift-truck traffic?', options: ['Physical separation, marked routes, and clear communication', 'Faster reversing', 'Higher loads for better awareness', 'Informal hand signals only'], correct: 0 },
+      { q: 'What should an operator do if the load blocks forward vision?', options: ['Drive normally', 'Adjust the travel method safely and follow site rules for visibility', 'Lean out farther while moving', 'Ignore nearby pedestrians'], correct: 1 },
+      { q: 'Why does seat-belt or restraint use matter on some forklifts?', options: ['It helps keep the operator in the protected zone during a tip-over event', 'It improves fuel economy', 'It only matters at high speed', 'It is optional in short tasks'], correct: 0 },
+      { q: 'What is one sign of unsafe truck operation?', options: ['Blind travel, rushing, or operating without clear separation from pedestrians', 'Checking the route', 'Using site rules', 'Lowering speed in congested areas'], correct: 0 },
+      { q: 'What is the best overall message from forklift safety training?', options: ['Operate in control, manage visibility, separate from pedestrians, and never take shortcuts', 'Productivity matters more than control', 'Only new operators need rules', 'Close calls are part of the job'], correct: 0 },
+    ]
+  },
+  6: {
+    title: 'How Do You Safely Stack Tyres?',
+    questions: [
+      { q: 'Why does tyre stacking safety matter?', options: ['It protects people, storage areas, and the tyres themselves', 'It is mainly about appearance', 'It only matters outdoors', 'Tyres cannot create hazards'], correct: 0 },
+      { q: 'What is one hazard of poor tyre stacking?', options: ['Falling or shifting tyres', 'Improved access', 'Lower manual effort', 'Better visibility'], correct: 0 },
+      { q: 'Why is stack height important?', options: ['Higher or poorly built stacks can become unstable', 'Height never affects stability', 'Taller stacks are always safer', 'Only forklifts are affected by height'], correct: 0 },
+      { q: 'What should be considered before stacking tyres?', options: ['Available space, stack stability, and safe access around the area', 'Only colour', 'Only who purchased them', 'Only the floor paint'], correct: 0 },
+      { q: 'What is one good storage practice?', options: ['Keep stacks stable and avoid creating blocked walkways', 'Lean tyres into aisles', 'Stack on uneven surfaces', 'Ignore access routes'], correct: 0 },
+      { q: 'Why does manual handling still matter when stacking tyres?', options: ['Tyres can still create awkward lifting, carrying, and reaching strain', 'Tyres are always lightweight', 'Storage eliminates lifting risk', 'Only machines handle tyres'], correct: 0 },
+      { q: 'What should a worker do if a tyre stack looks unstable?', options: ['Add more tyres quickly', 'Stop and restack or secure the area safely', 'Walk away without reporting it', 'Push it from the side'], correct: 1 },
+      { q: 'Why should the floor and base area be considered?', options: ['Uneven or unsuitable surfaces can reduce stack stability', 'Tyres stabilize themselves', 'The base only matters outside', 'The base is unrelated to collapse risk'], correct: 0 },
+      { q: 'What is one reason to maintain clear spacing around tyre stacks?', options: ['To allow safe handling and reduce struck-by or trip hazards', 'To fit more stock unsafely', 'To avoid inspections', 'Spacing is only for appearance'], correct: 0 },
+      { q: 'What is the best overall tyre-stacking message?', options: ['Store tyres in a way that keeps the stack stable and the people around it safe', 'Any neat stack is safe', 'Storage risks are minor', 'Only forklifts need to worry about storage layout'], correct: 0 },
+    ]
+  },
+  7: {
+    title: 'Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'What is one key message from a general safe-lifting video?', options: ['One lift works for every task', 'The best technique depends on the worker, load, and situation', 'Speed matters more than control', 'Backs are meant to twist under load'], correct: 1 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  8: {
+    title: 'Safe Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'What is one key message from a general safe-lifting video?', options: ['One lift works for every task', 'The best technique depends on the worker, load, and situation', 'Speed matters more than control', 'Backs are meant to twist under load'], correct: 1 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  9: {
+    title: 'Golfer\'s Lift - Safe Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'When is a golfer\'s lift a good choice?', options: ['For lighter items where balance and one-leg hinge control are appropriate', 'For very heavy pallets', 'For twisting with the load', 'For carrying the item overhead'], correct: 0 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  10: {
+    title: 'Half Kneel - Safe Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'Why is the half-kneel lift useful?', options: ['It can provide more stability for some floor-level lifts', 'It removes the need to assess the load', 'It is only for ladders', 'It is mainly for team lifts'], correct: 0 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  11: {
+    title: 'Squat Lift - Safe Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'What is important to remember about the squat lift?', options: ['Because it is common, it carries no risk', 'It is common, but good form still matters to reduce strain', 'It should always involve twisting', 'It is only for very light loads'], correct: 1 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  12: {
+    title: 'Straddle Lift - Safe Lifting in the Workplace',
+    questions: [
+      { q: 'What should happen before any lift begins?', options: ['Lift first and adjust later', 'Assess the load, path, and whether help or equipment is needed', 'Twist to test the weight', 'Assume the object is balanced'], correct: 1 },
+      { q: 'When is the straddle lift most useful?', options: ['When the worker needs to stay mobile and handle several items', 'Only for overhead work', 'Only for seated tasks', 'Only for two-person lifts'], correct: 0 },
+      { q: 'Why should the load stay close to the body?', options: ['It usually reduces strain and gives better control', 'It makes twisting easier', 'It blocks hazards ahead', 'It increases speed'], correct: 0 },
+      { q: 'Why is twisting during a lift risky?', options: ['It can increase strain on the body under load', 'It makes the lift lighter', 'It improves reach', 'It is required for awkward objects'], correct: 0 },
+      { q: 'What should a worker do if the load is too heavy or awkward?', options: ['Lift it quickly before fatigue sets in', 'Use help, a device, or a different method', 'Carry it one-handed', 'Pull it by the corner'], correct: 1 },
+      { q: 'Why does footing matter during lifting?', options: ['Stable footing helps control force and balance', 'Footing only matters on stairs', 'Footwear removes all risk', 'It does not matter if the load is light'], correct: 0 },
+      { q: 'Why should the path of travel stay visible?', options: ['Because carrying without seeing creates struck-by and trip hazards', 'Because visibility is optional', 'Because workers can feel obstacles', 'Because speed matters more'], correct: 0 },
+      { q: 'What is a common mistake in manual handling?', options: ['Using a planned technique', 'Rushing because the task looks routine', 'Checking the destination area', 'Repositioning the feet'], correct: 1 },
+      { q: 'What role does stability play in safe lifting?', options: ['A controlled base helps the worker move the load without sudden imbalance', 'It only matters with team lifts', 'It only matters outdoors', 'It is unrelated to technique'], correct: 0 },
+      { q: 'What is the best summary of safe lifting?', options: ['Choose the right method, move in control, and adjust the plan when needed', 'Use one favourite lift every time', 'Lift quickly and rest later', 'Only the strongest workers need technique'], correct: 0 },
+    ]
+  },
+  13: {
+    title: 'Ladders in Manufacturing',
+    questions: [
+      { q: 'What is one of the main goals of ladder safety?', options: ['Use whatever is nearby', 'Prevent falls by choosing, setting up, and using ladders correctly', 'Climb faster', 'Reduce inspection time'], correct: 1 },
+      { q: 'What should happen before using a ladder?', options: ['Use it immediately if it looks fine', 'Inspect it and confirm it is the right type for the task', 'Lean it on unstable material', 'Skip checking the feet'], correct: 1 },
+      { q: 'Why does setup matter so much with ladders?', options: ['Poor setup can create instability and fall risk', 'Setup only matters outdoors', 'Any angle is acceptable', 'Setup matters less than speed'], correct: 0 },
+      { q: 'What is a common unsafe ladder behaviour?', options: ['Maintaining balance and contact', 'Overreaching instead of repositioning the ladder', 'Facing the ladder while climbing', 'Checking the footing area'], correct: 1 },
+      { q: 'Why should the area around a ladder be considered?', options: ['Traffic, clutter, and surface conditions affect ladder safety', 'The surroundings do not matter', 'Only the ladder rails matter', 'Only top height matters'], correct: 0 },
+      { q: 'What is a safer climbing practice?', options: ['Carry large items in both hands', 'Maintain contact and keep the climb controlled', 'Skip looking at the rungs', 'Stand on the top cap'], correct: 1 },
+      { q: 'What should a worker do if the ladder is not providing safe access?', options: ['Use it anyway for a short task', 'Stop and choose a better access method', 'Climb from the side', 'Brace it with loose materials'], correct: 1 },
+      { q: 'Why is using the right ladder important in manufacturing?', options: ['Different tasks and heights need different ladder designs and capacities', 'Any ladder works the same', 'Only portable ladders are allowed', 'Ladder type is just preference'], correct: 0 },
+      { q: 'What is one benefit of good ladder habits becoming routine?', options: ['Workers are more likely to avoid shortcut behaviours', 'Ladders become unnecessary', 'Inspections no longer matter', 'Balance risks disappear'], correct: 0 },
+      { q: 'What is the best overall ladder-safety takeaway?', options: ['Inspect it, set it up right, use it right, and stop if conditions are unsafe', 'Ladders are safe if the task is quick', 'Experience removes the need for checks', 'Only new workers fall from ladders'], correct: 0 },
+    ]
+  },
+  14: {
+    title: 'Incident Investigation: Young Worker Falls From Forklift Platform',
+    questions: [
+      { q: 'What is the main purpose of an incident investigation?', options: ['Assign blame quickly', 'Find facts, causes, and prevention measures', 'Complete paperwork only', 'Protect equipment only'], correct: 1 },
+      { q: 'What should happen after emergency response and first aid are addressed?', options: ['Work should resume immediately', 'The scene should be secured and evidence preserved as much as possible', 'Damaged items should be discarded', 'Witnesses should be told what happened'], correct: 1 },
+      { q: 'Why are witness statements important?', options: ['They help investigators build a more accurate timeline', 'They replace all physical evidence', 'They remove the need for photos', 'They are only needed in fatal incidents'], correct: 0 },
+      { q: 'What should investigators avoid during interviews?', options: ['Open-ended questions', 'Jumping to conclusions before all facts are gathered', 'Taking notes', 'Reviewing timelines'], correct: 1 },
+      { q: 'In a forklift-related incident, what type of contributing factors might matter?', options: ['Only worker behaviour', 'Pedestrian position, visibility, speed, training, equipment use, and procedures', 'Only weather', 'Only floor colour'], correct: 1 },
+      { q: 'What does root-cause thinking look for?', options: ['Only the last unsafe act', 'Deeper process, supervision, training, or control issues that allowed the event', 'Only property damage values', 'Only whether discipline is needed'], correct: 1 },
+      { q: 'Which is the strongest corrective action after a serious forklift incident?', options: ['Tell workers to be careful', 'Change the hazard or system with better controls, barriers, training, and procedures', 'Ignore it if no one was killed', 'Wait for another incident'], correct: 1 },
+      { q: 'Why should timelines and measurements be documented carefully?', options: ['Because details can be forgotten later', 'Because forms need to look full', 'Because only managers read the file', 'Because photos are never useful'], correct: 0 },
+      { q: 'What should happen after corrective actions are assigned?', options: ['The file should close immediately', 'Actions should be tracked and checked for effectiveness', 'Workers should stop reporting hazards', 'The scene should never be discussed again'], correct: 1 },
+      { q: 'What is the most important mindset in an investigation?', options: ['Find the person to blame', 'Understand what failed and how to prevent recurrence', 'Reduce paperwork time', 'Focus only on equipment costs'], correct: 1 },
+    ]
+  },
+  15: {
+    title: 'Incident Investigation: Young Worker Run Over by Forklift',
+    questions: [
+      { q: 'What is the main purpose of an incident investigation?', options: ['Assign blame quickly', 'Find facts, causes, and prevention measures', 'Complete paperwork only', 'Protect equipment only'], correct: 1 },
+      { q: 'What should happen after emergency response and first aid are addressed?', options: ['Work should resume immediately', 'The scene should be secured and evidence preserved as much as possible', 'Damaged items should be discarded', 'Witnesses should be told what happened'], correct: 1 },
+      { q: 'Why are witness statements important?', options: ['They help investigators build a more accurate timeline', 'They replace all physical evidence', 'They remove the need for photos', 'They are only needed in fatal incidents'], correct: 0 },
+      { q: 'What should investigators avoid during interviews?', options: ['Open-ended questions', 'Jumping to conclusions before all facts are gathered', 'Taking notes', 'Reviewing timelines'], correct: 1 },
+      { q: 'In a forklift-related incident, what type of contributing factors might matter?', options: ['Only worker behaviour', 'Pedestrian position, visibility, speed, training, equipment use, and procedures', 'Only weather', 'Only floor colour'], correct: 1 },
+      { q: 'What does root-cause thinking look for?', options: ['Only the last unsafe act', 'Deeper process, supervision, training, or control issues that allowed the event', 'Only property damage values', 'Only whether discipline is needed'], correct: 1 },
+      { q: 'Which is the strongest corrective action after a serious forklift incident?', options: ['Tell workers to be careful', 'Change the hazard or system with better controls, barriers, training, and procedures', 'Ignore it if no one was killed', 'Wait for another incident'], correct: 1 },
+      { q: 'Why should timelines and measurements be documented carefully?', options: ['Because details can be forgotten later', 'Because forms need to look full', 'Because only managers read the file', 'Because photos are never useful'], correct: 0 },
+      { q: 'What should happen after corrective actions are assigned?', options: ['The file should close immediately', 'Actions should be tracked and checked for effectiveness', 'Workers should stop reporting hazards', 'The scene should never be discussed again'], correct: 1 },
+      { q: 'What is the most important mindset in an investigation?', options: ['Find the person to blame', 'Understand what failed and how to prevent recurrence', 'Reduce paperwork time', 'Focus only on equipment costs'], correct: 1 },
+    ]
+  },
+  16: {
+    title: 'Distracted Driving (Metric)',
+    questions: [
+      { q: 'What is distracted driving?', options: ['Driving only while using a phone', 'Any activity that takes a driver\'s eyes, hands, or mind away from driving', 'Driving below the speed limit', 'Using cruise control'], correct: 1 },
+      { q: 'Why is distracted driving so dangerous at work?', options: ['Because workers only drive in perfect conditions', 'Because a brief loss of attention can lead to serious incidents', 'Because delivery vehicles are safer than other vehicles', 'Because it only affects long trips'], correct: 1 },
+      { q: 'Which action is an example of cognitive distraction?', options: ['Checking mirrors', 'Thinking about a text conversation instead of traffic', 'Using a seat belt', 'Adjusting the seat before the trip'], correct: 1 },
+      { q: 'What should a worker do with a phone while driving for work?', options: ['Hold it below the steering wheel', 'Set it aside and avoid using it while the vehicle is moving', 'Read messages at red lights', 'Reply quickly in traffic'], correct: 1 },
+      { q: 'What should employers reinforce about work-related calls and messages?', options: ['Workers should answer immediately', 'No message is worth a crash', 'Calls are acceptable in school zones', 'Workers should multitask better'], correct: 1 },
+      { q: 'When is the right time to deal with navigation or communication issues?', options: ['While rolling slowly', 'Before the trip or after stopping in a safe place', 'At every stop sign', 'Only on highways'], correct: 1 },
+      { q: 'Why are hands-free systems not a complete solution?', options: ['Because they can still distract the driver\'s attention', 'Because they are illegal everywhere', 'Because they increase fuel use', 'Because they stop vehicle movement'], correct: 0 },
+      { q: 'What is a strong personal rule for work driving?', options: ['I can check one message if traffic is light', 'If the vehicle is moving, I do not touch the phone', 'I only text in parking lots with the engine on', 'I can use the phone if I\'m experienced'], correct: 1 },
+      { q: 'What is one sign that distraction may be affecting driving?', options: ['Missing traffic signs or drifting in the lane', 'Getting good fuel economy', 'Arriving early', 'Using windshield wipers'], correct: 0 },
+      { q: 'What is the best overall message from a distracted-driving safety video?', options: ['Experienced drivers can handle it', 'Attention belongs on the road, every trip, every time', 'Phones are only risky at highway speed', 'Distraction is mostly a new-driver problem'], correct: 1 },
+    ]
+  },
+  17: {
+    title: 'Driving for Work: The Journey Management Process',
+    questions: [
+      { q: 'What is the purpose of a driving-at-work safety process?', options: ['Get drivers to travel faster', 'Reduce road risk through planning, policies, and safe decisions', 'Avoid trip records', 'Replace worker judgement entirely'], correct: 1 },
+      { q: 'What should happen before a work trip begins?', options: ['The driver should leave first and plan later', 'The route, conditions, vehicle, and communication expectations should be reviewed', 'The worker should skip the vehicle check', 'The employer should assume the trip is routine'], correct: 1 },
+      { q: 'What is a journey-management process designed to do?', options: ['Only track fuel receipts', 'Think through the trip before the wheels start moving', 'Eliminate the need for trained drivers', 'Shift all responsibility to the worker'], correct: 1 },
+      { q: 'What is one employer responsibility for workers who drive?', options: ['Hope they have common sense', 'Set expectations, provide controls, and support safe driving decisions', 'Allow phone use if the worker is busy', 'Ignore fatigue risk'], correct: 1 },
+      { q: 'Why does fatigue matter in work driving?', options: ['It can reduce attention, judgement, and reaction time', 'It only matters on overnight trips', 'Experienced drivers are unaffected', 'Coffee completely removes the risk'], correct: 0 },
+      { q: 'What should a worker do if conditions become unsafe during the trip?', options: ['Keep driving to meet the deadline', 'Stop, reassess, and follow the organization\'s safe-driving expectations', 'Turn off lights to save power', 'Ignore the issue if the route is familiar'], correct: 1 },
+      { q: 'Why are vehicle inspections important?', options: ['They help identify problems before the trip becomes a roadside emergency', 'They are only for mechanics', 'They replace safe driving', 'They are optional in good weather'], correct: 0 },
+      { q: 'Which policy message is strongest?', options: ['Delivery deadlines come first', 'No job is so urgent that it justifies unsafe driving', 'Drivers should answer work calls', 'Minor crashes are part of business'], correct: 1 },
+      { q: 'What role does incident reporting play in a driving program?', options: ['Very little', 'It helps identify trends and improve controls', 'It only matters after a fatality', 'It is only for insurance'], correct: 1 },
+      { q: 'What is the best summary of safe driving for work?', options: ['It begins before the trip and continues through supervision and follow-up', 'It only depends on driver skill', 'It is mainly a paperwork issue', 'It is less important on short trips'], correct: 0 },
+    ]
+  },
+  18: {
+    title: 'Road Safety: Employer Responsibility',
+    questions: [
+      { q: 'What is the purpose of a driving-at-work safety process?', options: ['Get drivers to travel faster', 'Reduce road risk through planning, policies, and safe decisions', 'Avoid trip records', 'Replace worker judgement entirely'], correct: 1 },
+      { q: 'What should happen before a work trip begins?', options: ['The driver should leave first and plan later', 'The route, conditions, vehicle, and communication expectations should be reviewed', 'The worker should skip the vehicle check', 'The employer should assume the trip is routine'], correct: 1 },
+      { q: 'What is a journey-management process designed to do?', options: ['Only track fuel receipts', 'Think through the trip before the wheels start moving', 'Eliminate the need for trained drivers', 'Shift all responsibility to the worker'], correct: 1 },
+      { q: 'What is one employer responsibility for workers who drive?', options: ['Hope they have common sense', 'Set expectations, provide controls, and support safe driving decisions', 'Allow phone use if the worker is busy', 'Ignore fatigue risk'], correct: 1 },
+      { q: 'Why does fatigue matter in work driving?', options: ['It can reduce attention, judgement, and reaction time', 'It only matters on overnight trips', 'Experienced drivers are unaffected', 'Coffee completely removes the risk'], correct: 0 },
+      { q: 'What should a worker do if conditions become unsafe during the trip?', options: ['Keep driving to meet the deadline', 'Stop, reassess, and follow the organization\'s safe-driving expectations', 'Turn off lights to save power', 'Ignore the issue if the route is familiar'], correct: 1 },
+      { q: 'Why are vehicle inspections important?', options: ['They help identify problems before the trip becomes a roadside emergency', 'They are only for mechanics', 'They replace safe driving', 'They are optional in good weather'], correct: 0 },
+      { q: 'Which policy message is strongest?', options: ['Delivery deadlines come first', 'No job is so urgent that it justifies unsafe driving', 'Drivers should answer work calls', 'Minor crashes are part of business'], correct: 1 },
+      { q: 'What role does incident reporting play in a driving program?', options: ['Very little', 'It helps identify trends and improve controls', 'It only matters after a fatality', 'It is only for insurance'], correct: 1 },
+      { q: 'What is the best summary of safe driving for work?', options: ['It begins before the trip and continues through supervision and follow-up', 'It only depends on driver skill', 'It is mainly a paperwork issue', 'It is less important on short trips'], correct: 0 },
+    ]
+  },
+  19: {
+    title: 'SAFE Work Manitoba Webinar - SAFE Driving for Your Work',
+    questions: [
+      { q: 'What is the purpose of a driving-at-work safety process?', options: ['Get drivers to travel faster', 'Reduce road risk through planning, policies, and safe decisions', 'Avoid trip records', 'Replace worker judgement entirely'], correct: 1 },
+      { q: 'What should happen before a work trip begins?', options: ['The driver should leave first and plan later', 'The route, conditions, vehicle, and communication expectations should be reviewed', 'The worker should skip the vehicle check', 'The employer should assume the trip is routine'], correct: 1 },
+      { q: 'What is a journey-management process designed to do?', options: ['Only track fuel receipts', 'Think through the trip before the wheels start moving', 'Eliminate the need for trained drivers', 'Shift all responsibility to the worker'], correct: 1 },
+      { q: 'What is one employer responsibility for workers who drive?', options: ['Hope they have common sense', 'Set expectations, provide controls, and support safe driving decisions', 'Allow phone use if the worker is busy', 'Ignore fatigue risk'], correct: 1 },
+      { q: 'Why does fatigue matter in work driving?', options: ['It can reduce attention, judgement, and reaction time', 'It only matters on overnight trips', 'Experienced drivers are unaffected', 'Coffee completely removes the risk'], correct: 0 },
+      { q: 'What should a worker do if conditions become unsafe during the trip?', options: ['Keep driving to meet the deadline', 'Stop, reassess, and follow the organization\'s safe-driving expectations', 'Turn off lights to save power', 'Ignore the issue if the route is familiar'], correct: 1 },
+      { q: 'Why are vehicle inspections important?', options: ['They help identify problems before the trip becomes a roadside emergency', 'They are only for mechanics', 'They replace safe driving', 'They are optional in good weather'], correct: 0 },
+      { q: 'Which policy message is strongest?', options: ['Delivery deadlines come first', 'No job is so urgent that it justifies unsafe driving', 'Drivers should answer work calls', 'Minor crashes are part of business'], correct: 1 },
+      { q: 'What role does incident reporting play in a driving program?', options: ['Very little', 'It helps identify trends and improve controls', 'It only matters after a fatality', 'It is only for insurance'], correct: 1 },
+      { q: 'What is the best summary of safe driving for work?', options: ['It begins before the trip and continues through supervision and follow-up', 'It only depends on driver skill', 'It is mainly a paperwork issue', 'It is less important on short trips'], correct: 0 },
+    ]
+  },
+  20: {
+    title: 'Respect the Cone Zone',
+    questions: [
+      { q: 'What is a cone zone?', options: ['A place to store road signs', 'A marked work area where workers need driver cooperation and protection', 'A private parking area', 'A section of road with no special rules'], correct: 1 },
+      { q: 'Why do workers need drivers to respect cone zones?', options: ['Because drivers create the work schedule', 'Because moving vehicles can seriously injure roadside workers', 'Because cones are easy to replace', 'Because workers expect full road closure'], correct: 1 },
+      { q: 'What should drivers do when approaching a cone zone?', options: ['Speed up to get through quickly', 'Slow down and pay attention', 'Use the shoulder to pass', 'Ignore workers directing traffic'], correct: 1 },
+      { q: 'Why are distractions especially dangerous near cone zones?', options: ['Because conditions can change quickly and workers may be close to traffic', 'Because cones never move', 'Because only workers are distracted', 'Because cones remove all risk'], correct: 0 },
+      { q: 'What should workers in or near a cone zone rely on besides cones?', options: ['Luck', 'Proper procedures, visibility, communication, and traffic control measures', 'Cell phones', 'Verbal warnings only'], correct: 1 },
+      { q: 'What is one reason speed control matters in roadside work?', options: ['Higher speed leaves less time and distance to react', 'Speed does not affect stopping distance', 'Only trucks need to slow down', 'It only matters in bad weather'], correct: 0 },
+      { q: 'What should a worker do if traffic control is not being respected?', options: ['Keep working without change', 'Report the issue and reassess the control measures', 'Move closer to traffic', 'Remove warning devices'], correct: 1 },
+      { q: 'Why is visibility important in a cone zone?', options: ['Workers and control devices must be seen early enough for drivers to react', 'It only matters at night', 'It is mainly for appearance', 'It replaces safe planning'], correct: 0 },
+      { q: 'What message does \'Respect the Cone Zone\' reinforce most strongly?', options: ['Roadside workers deserve the same respect as any other workplace', 'Cones are optional', 'Workers should adapt to unsafe drivers', 'Traffic control is only for large projects'], correct: 0 },
+      { q: 'What is the safest overall behaviour near a cone zone?', options: ['Slow down, stay alert, and expect people and changes ahead', 'Pass quickly before traffic builds', 'Drive normally unless someone waves', 'Follow the vehicle ahead without thinking'], correct: 0 },
+    ]
+  },
+  21: {
+    title: 'Safety With Every Step: Commercial Delivery',
+    questions: [
+      { q: 'What is one of the main safety goals in delivery work?', options: ['Finish as fast as possible', 'Recognize hazards early and complete the delivery safely', 'Avoid reporting hazards', 'Carry everything in one trip'], correct: 1 },
+      { q: 'What should a worker do before carrying a parcel to a drop-off point?', options: ['Assume the route is clear', 'Check the route for slips, trips, traffic, pets, and obstacles', 'Leave the vehicle running and hurry', 'Ignore weather conditions'], correct: 1 },
+      { q: 'Why is safe parking part of delivery safety?', options: ['Because it is faster to leave in unsafe spots', 'Because unsafe parking can expose the worker and others to struck-by risk', 'Because parking rules only matter downtown', 'Because loading zones are optional'], correct: 1 },
+      { q: 'What should a delivery worker do when an item is awkward or heavy?', options: ['Lift it alone no matter what', 'Use a dolly, ask for help, or reduce the load', 'Twist quickly and get it over with', 'Carry it far from the body'], correct: 1 },
+      { q: 'Why are stairs and uneven walkways important hazards in delivery work?', options: ['They are only a concern in winter', 'They can change footing and increase fall risk', 'They do not matter when wearing boots', 'They only affect new workers'], correct: 1 },
+      { q: 'What is a good practice when exiting the vehicle for a delivery?', options: ['Jump out quickly', 'Maintain three-point contact and watch footing', 'Carry all packages at once', 'Leave the door open in traffic'], correct: 1 },
+      { q: 'What should a worker do if they feel pressured by time?', options: ['Skip the safety steps', 'Follow the process and keep safety ahead of speed', 'Run to every stop', 'Ignore signs of fatigue'], correct: 1 },
+      { q: 'What is the safest way to carry a package?', options: ['High enough to block vision', 'Close to the body while keeping the walking path visible', 'With one hand only', 'Over one shoulder regardless of size'], correct: 1 },
+      { q: 'Why is staying alert around driveways and traffic important?', options: ['Because delivery workers are always on private property', 'Because vehicles can move unexpectedly around workers', 'Because hazard lights remove the risk', 'Because customers will warn drivers'], correct: 1 },
+      { q: 'What should happen after a worker identifies a recurring delivery hazard?', options: ['Nothing if no one was hurt', 'It should be reported so the route, process, or control can be improved', 'The worker should just avoid the stop forever', 'Only customers should address it'], correct: 1 },
+    ]
+  },
+  22: {
+    title: 'Safety With Every Step: Last Mile Delivery',
+    questions: [
+      { q: 'What is one of the main safety goals in delivery work?', options: ['Finish as fast as possible', 'Recognize hazards early and complete the delivery safely', 'Avoid reporting hazards', 'Carry everything in one trip'], correct: 1 },
+      { q: 'What should a worker do before carrying a parcel to a drop-off point?', options: ['Assume the route is clear', 'Check the route for slips, trips, traffic, pets, and obstacles', 'Leave the vehicle running and hurry', 'Ignore weather conditions'], correct: 1 },
+      { q: 'Why is safe parking part of delivery safety?', options: ['Because it is faster to leave in unsafe spots', 'Because unsafe parking can expose the worker and others to struck-by risk', 'Because parking rules only matter downtown', 'Because loading zones are optional'], correct: 1 },
+      { q: 'What should a delivery worker do when an item is awkward or heavy?', options: ['Lift it alone no matter what', 'Use a dolly, ask for help, or reduce the load', 'Twist quickly and get it over with', 'Carry it far from the body'], correct: 1 },
+      { q: 'Why are stairs and uneven walkways important hazards in delivery work?', options: ['They are only a concern in winter', 'They can change footing and increase fall risk', 'They do not matter when wearing boots', 'They only affect new workers'], correct: 1 },
+      { q: 'What is a good practice when exiting the vehicle for a delivery?', options: ['Jump out quickly', 'Maintain three-point contact and watch footing', 'Carry all packages at once', 'Leave the door open in traffic'], correct: 1 },
+      { q: 'What should a worker do if they feel pressured by time?', options: ['Skip the safety steps', 'Follow the process and keep safety ahead of speed', 'Run to every stop', 'Ignore signs of fatigue'], correct: 1 },
+      { q: 'What is the safest way to carry a package?', options: ['High enough to block vision', 'Close to the body while keeping the walking path visible', 'With one hand only', 'Over one shoulder regardless of size'], correct: 1 },
+      { q: 'Why is staying alert around driveways and traffic important?', options: ['Because delivery workers are always on private property', 'Because vehicles can move unexpectedly around workers', 'Because hazard lights remove the risk', 'Because customers will warn drivers'], correct: 1 },
+      { q: 'What should happen after a worker identifies a recurring delivery hazard?', options: ['Nothing if no one was hurt', 'It should be reported so the route, process, or control can be improved', 'The worker should just avoid the stop forever', 'Only customers should address it'], correct: 1 },
+    ]
+  },
+  23: {
+    title: 'Conducting a Hazard Assessment',
+    questions: [
+      { q: 'What is the main purpose of a hazard assessment?', options: ['Complete paperwork after an incident', 'Identify hazards and decide how to control them before harm occurs', 'Assign blame', 'Avoid worker input'], correct: 1 },
+      { q: 'What should be identified during a hazard assessment?', options: ['Only obvious physical hazards', 'Any condition, task, or factor that could cause harm', 'Only hazards that caused past injuries', 'Only hazards managers notice'], correct: 1 },
+      { q: 'Why is worker input important in a hazard assessment?', options: ['Workers often know the task details and practical risks', 'Workers are not part of the process', 'Workers only need the final form', 'Worker input slows the process'], correct: 0 },
+      { q: 'What should happen after a hazard is identified?', options: ['Ignore it if no one was hurt yet', 'Assess the risk and determine suitable controls', 'Wait for an inspection', 'Only write it down'], correct: 1 },
+      { q: 'Which control is usually strongest?', options: ['A warning sign by itself', 'Removing the hazard or engineering it out where possible', 'Telling workers to be careful', 'Doing nothing unless an incident happens'], correct: 1 },
+      { q: 'Why should tasks be broken into steps during an assessment?', options: ['To better spot where hazards appear in the work process', 'To make the form longer', 'To reduce worker involvement', 'To avoid discussing controls'], correct: 0 },
+      { q: 'What should happen if conditions change after the assessment is done?', options: ['Keep using the old assessment forever', 'Review and update the assessment', 'Throw out the controls', 'Stop reporting hazards'], correct: 1 },
+      { q: 'What is one sign of a weak control?', options: ['It depends only on workers remembering a warning', 'It removes exposure at the source', 'It uses guarding', 'It changes the process'], correct: 0 },
+      { q: 'Why is documentation useful in hazard assessments?', options: ['It records hazards, controls, and accountability for follow-through', 'It replaces supervision', 'It removes the need for training', 'It is only for auditors'], correct: 0 },
+      { q: 'What is the best overall hazard-assessment message?', options: ['Find the hazard, judge the risk, apply controls, and review the result', 'Only assess tasks after injuries', 'Use the same controls everywhere', 'Leave the process to one person'], correct: 0 },
+    ]
+  },
+  24: {
+    title: 'The Good, the Bad and the Hazardous – Let\'s Talk Identification and Assessment',
+    questions: [
+      { q: 'Why are hazard identification and assessment foundational to a safety program?', options: ['They help a workplace understand risk before harm occurs', 'They replace inspections', 'They only matter after an incident', 'They are only for managers'], correct: 0 },
+      { q: 'What is a common weakness in hazard assessment?', options: ['Treating it as a form to complete instead of a process to guide action', 'Getting worker input', 'Looking at task steps', 'Reviewing changes in conditions'], correct: 0 },
+      { q: 'What should happen after a hazard is identified and assessed?', options: ['It should lead to control decisions and follow-through', 'It should be filed and forgotten', 'It should only be discussed annually', 'It should replace supervision'], correct: 0 },
+      { q: 'What improves hazard identification quality?', options: ['Looking only at obvious dangers', 'Using observations, worker input, task review, and past incidents', 'Ignoring routine work', 'Waiting for management direction only'], correct: 1 },
+      { q: 'Why can a hazard assessment seem \'good\' on paper but fail in practice?', options: ['Because the controls may not match the real work conditions', 'Because paperwork is always enough', 'Because workers dislike assessments', 'Because hazards never change'], correct: 0 },
+      { q: 'What is one sign of a stronger control decision?', options: ['It changes the hazard, equipment, or process, not just the warning language', 'It only adds a reminder poster', 'It depends only on memory', 'It delays action until later'], correct: 0 },
+      { q: 'Why should hazard assessments be updated?', options: ['Because work conditions, people, equipment, and tasks can change', 'Because old assessments are always perfect', 'Only when regulators visit', 'Only after a fatality'], correct: 0 },
+      { q: 'Why does \'talk identification and assessment\' matter in practice?', options: ['Because people need a shared understanding of hazards and risk decisions', 'Because the form speaks for itself', 'Because discussion weakens accountability', 'Because workers should not see the results'], correct: 0 },
+      { q: 'What is the point of assessing both likelihood and severity?', options: ['To help prioritize which hazards need stronger or faster controls', 'To satisfy formatting rules', 'To remove the need for judgement', 'To avoid corrective actions'], correct: 0 },
+      { q: 'What is the best overall lesson from a hazard identification and assessment webinar?', options: ['Find hazards carefully, assess them honestly, and turn the result into practical controls', 'Every hazard needs the same response', 'Assessment ends when the form is signed', 'Identification matters more than control'], correct: 0 },
+    ]
+  },
+  25: {
+    title: 'Conducting an Incident Investigation',
+    questions: [
+      { q: 'What is the main purpose of an incident investigation?', options: ['Assign blame quickly', 'Find facts, causes, and prevention measures', 'Complete paperwork only', 'Protect equipment only'], correct: 1 },
+      { q: 'What should happen after emergency response and first aid are addressed?', options: ['Work should resume immediately', 'The scene should be secured and evidence preserved as much as possible', 'Damaged items should be discarded', 'Witnesses should be told what happened'], correct: 1 },
+      { q: 'Why are witness statements important?', options: ['They help investigators build a more accurate timeline', 'They replace all physical evidence', 'They remove the need for photos', 'They are only needed in fatal incidents'], correct: 0 },
+      { q: 'What should investigators avoid during interviews?', options: ['Open-ended questions', 'Jumping to conclusions before all facts are gathered', 'Taking notes', 'Reviewing timelines'], correct: 1 },
+      { q: 'In a forklift-related incident, what type of contributing factors might matter?', options: ['Only worker behaviour', 'Pedestrian position, visibility, speed, training, equipment use, and procedures', 'Only weather', 'Only floor colour'], correct: 1 },
+      { q: 'What does root-cause thinking look for?', options: ['Only the last unsafe act', 'Deeper process, supervision, training, or control issues that allowed the event', 'Only property damage values', 'Only whether discipline is needed'], correct: 1 },
+      { q: 'Which is the strongest corrective action after a serious forklift incident?', options: ['Tell workers to be careful', 'Change the hazard or system with better controls, barriers, training, and procedures', 'Ignore it if no one was killed', 'Wait for another incident'], correct: 1 },
+      { q: 'Why should timelines and measurements be documented carefully?', options: ['Because details can be forgotten later', 'Because forms need to look full', 'Because only managers read the file', 'Because photos are never useful'], correct: 0 },
+      { q: 'What should happen after corrective actions are assigned?', options: ['The file should close immediately', 'Actions should be tracked and checked for effectiveness', 'Workers should stop reporting hazards', 'The scene should never be discussed again'], correct: 1 },
+      { q: 'What is the most important mindset in an investigation?', options: ['Find the person to blame', 'Understand what failed and how to prevent recurrence', 'Reduce paperwork time', 'Focus only on equipment costs'], correct: 1 },
+    ]
+  },
+  26: {
+    title: 'Frighteningly Common, Easily Preventable',
+    questions: [
+      { q: 'What is the central message of a \'common but preventable\' safety video?', options: ['Frequent incidents are just part of work', 'Many common incidents can be prevented with practical action', 'Only rare hazards matter', 'Prevention is mostly luck'], correct: 1 },
+      { q: 'Why do common incidents keep happening?', options: ['Because routine work can lead people to normalize risk', 'Because controls never work', 'Because workers cannot learn', 'Because hazards only appear once'], correct: 0 },
+      { q: 'What is one strong way to prevent a common incident?', options: ['Wait until someone is hurt', 'Fix the hazard or process before the next occurrence', 'Assume people will pay more attention', 'Rely on memory only'], correct: 1 },
+      { q: 'Why should near misses be taken seriously?', options: ['They reveal the same pathways that can lead to injury', 'They are not worth discussing', 'They only matter for contractors', 'They prove the system works'], correct: 0 },
+      { q: 'What role does training play in prevention?', options: ['It helps workers recognize risk and apply controls correctly', 'It eliminates the need for safe systems', 'It is only for new hires', 'It replaces supervision'], correct: 0 },
+      { q: 'What is one weakness of telling people to \'be careful\'?', options: ['It may not change the hazard or the system creating the risk', 'It always solves the problem', 'It is stronger than engineering controls', 'It removes the need for follow-up'], correct: 0 },
+      { q: 'Why is follow-up important after a prevention action?', options: ['To confirm the action actually reduced the risk', 'Because every action works automatically', 'Only to complete the form', 'To avoid worker feedback'], correct: 0 },
+      { q: 'What should a workplace do with repeated incident trends?', options: ['Treat them as random', 'Analyze the pattern and address the underlying factors', 'Focus only on the last event', 'Stop reporting them'], correct: 1 },
+      { q: 'What mindset improves prevention the most?', options: ['If nobody got hurt, nothing is wrong', 'Small warning signs matter and should be acted on', 'Only major incidents deserve attention', 'Prevention is the safety team\'s job only'], correct: 1 },
+      { q: 'What is the strongest takeaway from a preventable-incidents webinar?', options: ['Common harm is not inevitable when organizations act on what they know', 'Nothing can be done about routine incidents', 'Only high-tech controls matter', 'Prevention starts after a serious injury'], correct: 0 },
+    ]
+  },
+  27: {
+    title: 'Helping Injured Workers Return to Work: Doug Stone\'s Story',
+    questions: [
+      { q: 'What is a key goal of return to work after an injury?', options: ['Bring the worker back before they are ready', 'Support safe recovery and return to meaningful work', 'Avoid communication', 'Replace the worker permanently'], correct: 1 },
+      { q: 'Why is early contact with an injured worker important?', options: ['It shows support and helps planning begin', 'It replaces medical care', 'It lets the employer pressure the worker', 'It is only about paperwork'], correct: 0 },
+      { q: 'What should modified work do?', options: ['Ignore restrictions', 'Match the worker\'s current abilities and medical guidance', 'Be harder than regular work', 'Only involve paperwork even if unsuitable'], correct: 1 },
+      { q: 'Who should help shape a return-to-work plan?', options: ['Only payroll', 'The worker, employer, and others involved in recovery as needed', 'Only the worker\'s co-workers', 'Only customers'], correct: 1 },
+      { q: 'Why is staying connected to the workplace helpful during recovery?', options: ['It can support confidence, routine, and a smoother return', 'It eliminates all pain', 'It removes the need for restrictions', 'It means the claim is closed'], correct: 0 },
+      { q: 'What should an employer avoid in a return-to-work conversation?', options: ['Listening to concerns', 'Treating restrictions like a personal weakness', 'Reviewing suitable duties', 'Planning next steps'], correct: 1 },
+      { q: 'What makes a return-to-work offer strong?', options: ['It is vague and informal', 'It is clear, suitable, and aligned with restrictions', 'It ignores the schedule', 'It assumes full capacity'], correct: 1 },
+      { q: 'Why should progress be reviewed after the worker returns?', options: ['Needs can change as recovery continues', 'No reason; the first plan is always perfect', 'Because restrictions never matter', 'Only to increase workload'], correct: 0 },
+      { q: 'What is one benefit of suitable early return to work?', options: ['It can help maintain function and workplace connection', 'It guarantees no future injury', 'It removes the need for hazard controls', 'It avoids all reporting'], correct: 0 },
+      { q: 'What is the best overall approach to return to work?', options: ['Supportive, safe, and based on abilities, not assumptions', 'Fastest possible return no matter what', 'Minimal communication', 'One-size-fits-all duties'], correct: 0 },
+    ]
+  },
+  28: {
+    title: 'Make Zero Your Goal',
+    questions: [
+      { q: 'What does \'Make Zero Your Goal\' mean in safety?', options: ['Aim for no injuries, diseases, or deaths by making safer choices every day', 'Expect some harm as normal', 'Focus only on major incidents', 'Use zero only in posters'], correct: 0 },
+      { q: 'Why can a zero goal be useful?', options: ['It sets a strong expectation that harm is preventable', 'It means every hazard disappears immediately', 'It replaces controls', 'It only helps senior leaders'], correct: 0 },
+      { q: 'What makes a zero goal meaningful instead of empty?', options: ['Controls, reporting, leadership, and daily safe choices', 'A slogan without follow-through', 'Ignoring near misses', 'Reducing conversations about risk'], correct: 0 },
+      { q: 'What should workers do when they notice a hazard under a zero-harm mindset?', options: ['Walk past it if they are busy', 'Act, report it, or get it addressed before someone gets hurt', 'Wait for a monthly audit', 'Assume someone else will handle it'], correct: 1 },
+      { q: 'Why do near misses matter in a zero-goal culture?', options: ['They show where the next injury could happen', 'They do not matter if nobody was hurt', 'They are only for statistics', 'They should stay informal'], correct: 0 },
+      { q: 'What role does leadership play in making zero the goal?', options: ['Leaders must support safe decisions, not just production pressure', 'Leadership is unrelated', 'Leaders only track costs', 'Leaders should leave safety to workers'], correct: 0 },
+      { q: 'What is one danger of misunderstanding a zero goal?', options: ['People may hide incidents if the focus becomes numbers instead of learning', 'Workers become safer automatically', 'Training becomes unnecessary', 'Hazard assessments are no longer needed'], correct: 0 },
+      { q: 'How should organizations use a zero goal well?', options: ['As a prevention standard supported by reporting, learning, and action', 'As a reason to avoid documenting incidents', 'As a way to blame workers', 'As a replacement for procedures'], correct: 0 },
+      { q: 'What daily behaviour fits a zero-harm mindset?', options: ['Taking shortcuts when the risk seems small', 'Stopping to fix or report unsafe conditions before harm happens', 'Ignoring minor signs of trouble', 'Accepting repeat incidents'], correct: 1 },
+      { q: 'What is the best summary of \'Make Zero Your Goal\'?', options: ['Treat every injury and illness as preventable and act accordingly', 'Only focus on severe outcomes', 'Safety is separate from daily work', 'Some harm is the cost of doing business'], correct: 0 },
+    ]
+  },
+  29: {
+    title: 'Plain Language Helps Workplace Health and Safety',
+    questions: [
+      { q: 'Why does plain language matter in workplace health and safety?', options: ['Because workers need to clearly understand the information that protects them', 'Because longer words are always safer', 'Because procedures should sound technical', 'Because only supervisors read safety documents'], correct: 0 },
+      { q: 'What is a sign of plain-language communication?', options: ['Clear words, direct structure, and specific actions', 'Long sentences and unexplained jargon', 'Dense paragraphs with no headings', 'Vague warnings'], correct: 0 },
+      { q: 'What is one risk of overly complex safety information?', options: ['Workers may misunderstand what they must do', 'It always improves credibility', 'It removes the need for training', 'It reduces the need for questions'], correct: 0 },
+      { q: 'Which instruction is stronger from a plain-language perspective?', options: ['Use proper precautions as required', 'Wear chemical-resistant gloves before handling this product', 'Comply with relevant requirements', 'Use appropriate devices where applicable'], correct: 1 },
+      { q: 'Why should safety writers think about the reader?', options: ['Because workers need information that matches their task, experience, and context', 'Because the writer\'s preference is all that matters', 'Because readers should decode jargon themselves', 'Because forms do not affect safety'], correct: 0 },
+      { q: 'What helps make a procedure easier to use?', options: ['Headings, steps, and logical order', 'Long blocks of text', 'Undefined acronyms', 'Passive wording that hides responsibility'], correct: 0 },
+      { q: 'What should happen if workers do not understand a safety instruction?', options: ['Blame them for not reading it', 'Review and improve how the information is written and explained', 'Ignore it if no one was hurt', 'Add more legal terms'], correct: 1 },
+      { q: 'Why do plain-language forms and reports matter?', options: ['They improve accuracy, consistency, and follow-through', 'They are less professional', 'They are only for the public', 'They eliminate the need for training'], correct: 0 },
+      { q: 'What is one benefit of reducing jargon in safety communication?', options: ['It lowers the chance that key actions will be misunderstood', 'It makes documents less useful', 'It removes technical accuracy', 'It only helps office staff'], correct: 0 },
+      { q: 'What is the best overall message from a plain-language safety video?', options: ['If safety information must be acted on, it must be easy to understand', 'Complex wording shows authority', 'Workers should adapt to any document style', 'Plain language is optional in safety'], correct: 0 },
+    ]
+  },
+  30: {
+    title: '8 Tips to Make Your Health and Safety Committee Meetings More Effective',
+    questions: [
+      { q: 'What is the purpose of a health and safety committee meeting?', options: ['Fill scheduled time', 'Identify issues, discuss solutions, and support safer workplaces', 'Replace inspections', 'Handle payroll concerns'], correct: 1 },
+      { q: 'What helps a meeting be more effective before it starts?', options: ['An agenda and the right information prepared in advance', 'Showing up without a topic', 'Only talking about old business', 'Skipping action items'], correct: 0 },
+      { q: 'Why is attendance and participation important?', options: ['Because committee effectiveness depends on shared input and accountability', 'Because only one person should speak', 'Because discussion slows the process', 'Because minutes are more important than people'], correct: 0 },
+      { q: 'What is a sign of a weak committee meeting?', options: ['No clear follow-up on action items', 'Reviewing hazards and trends', 'Encouraging discussion', 'Tracking progress'], correct: 0 },
+      { q: 'Why should meetings focus on real workplace issues?', options: ['Because relevance improves engagement and action', 'Because policies never matter', 'Because only incidents matter', 'Because workers do not need data'], correct: 0 },
+      { q: 'What role do meeting minutes play?', options: ['They record decisions, responsibilities, and follow-up needs', 'They replace inspections', 'They are only for regulators', 'They are optional if discussion was good'], correct: 0 },
+      { q: 'Why should action items have owners and dates?', options: ['To make follow-up clear and measurable', 'To make the meeting longer', 'Because action items are symbolic only', 'To avoid reporting back'], correct: 0 },
+      { q: 'What should happen with repeated unresolved issues?', options: ['Keep listing them without change', 'Escalate, reassess, or change the approach', 'Drop them from the agenda', 'Wait until someone gets hurt'], correct: 1 },
+      { q: 'What makes committee discussion stronger?', options: ['Specific data, worker input, and practical recommendations', 'Guesswork only', 'Avoiding disagreement', 'Limiting topics to housekeeping'], correct: 0 },
+      { q: 'What is the best overall message about committee meetings?', options: ['A good meeting creates action, not just conversation', 'The agenda is the end result', 'Minutes matter more than solutions', 'Meetings are only a legal requirement'], correct: 0 },
+    ]
+  },
+  31: {
+    title: 'WHMIS 2015 for Employers',
+    questions: [
+      { q: 'What is one core purpose of WHMIS 2015?', options: ['Hide hazard information', 'Communicate hazards so products can be used safely', 'Replace all training', 'Reduce label requirements'], correct: 1 },
+      { q: 'Which WHMIS tool gives detailed hazard and precaution information?', options: ['A lunch schedule', 'The safety data sheet (SDS)', 'A payroll form', 'A work order'], correct: 1 },
+      { q: 'What should a worker know before using a hazardous product?', options: ['Only the product name', 'The hazards, required controls, and emergency steps', 'Only where it is stored', 'Only who ordered it'], correct: 1 },
+      { q: 'Why are labels important under WHMIS?', options: ['They identify hazards and key precautions right on the product', 'They replace the SDS', 'They are mainly decorative', 'They only matter in warehouses'], correct: 0 },
+      { q: 'What should happen if a label is missing or unclear?', options: ['Use the product anyway', 'Stop and get the correct information before use', 'Guess based on smell', 'Ask another worker to use it'], correct: 1 },
+      { q: 'What is an employer responsibility under WHMIS?', options: ['Assume workers already know the hazards', 'Ensure products are properly identified and workers are educated and trained', 'Keep SDSs hidden', 'Rely only on suppliers for communication'], correct: 1 },
+      { q: 'What is a worker responsibility under WHMIS?', options: ['Ignore labels once trained', 'Follow instruction, use controls, and ask questions when unsure', 'Use substitutes without review', 'Remove labels for convenience'], correct: 1 },
+      { q: 'What changed under WHMIS 2015?', options: ['Hazard communication aligned more closely with GHS', 'All hazardous products were banned', 'SDSs were removed', 'Training stopped being needed'], correct: 0 },
+      { q: 'Why is training important even when labels and SDSs exist?', options: ['Because workers need to know how to apply the information to real tasks', 'Because reading is not allowed', 'Because labels give no useful information', 'Because only supervisors use WHMIS'], correct: 0 },
+      { q: 'What is the best overall WHMIS message?', options: ['Know the hazard, know the controls, and use the information before exposure happens', 'Only read labels after a spill', 'SDSs are for emergencies only', 'Experience replaces hazard communication'], correct: 0 },
+    ]
+  },
+  32: {
+    title: 'WHMIS 2015 for Workers',
+    questions: [
+      { q: 'What is one core purpose of WHMIS 2015?', options: ['Hide hazard information', 'Communicate hazards so products can be used safely', 'Replace all training', 'Reduce label requirements'], correct: 1 },
+      { q: 'Which WHMIS tool gives detailed hazard and precaution information?', options: ['A lunch schedule', 'The safety data sheet (SDS)', 'A payroll form', 'A work order'], correct: 1 },
+      { q: 'What should a worker know before using a hazardous product?', options: ['Only the product name', 'The hazards, required controls, and emergency steps', 'Only where it is stored', 'Only who ordered it'], correct: 1 },
+      { q: 'Why are labels important under WHMIS?', options: ['They identify hazards and key precautions right on the product', 'They replace the SDS', 'They are mainly decorative', 'They only matter in warehouses'], correct: 0 },
+      { q: 'What should happen if a label is missing or unclear?', options: ['Use the product anyway', 'Stop and get the correct information before use', 'Guess based on smell', 'Ask another worker to use it'], correct: 1 },
+      { q: 'What is an employer responsibility under WHMIS?', options: ['Assume workers already know the hazards', 'Ensure products are properly identified and workers are educated and trained', 'Keep SDSs hidden', 'Rely only on suppliers for communication'], correct: 1 },
+      { q: 'What is a worker responsibility under WHMIS?', options: ['Ignore labels once trained', 'Follow instruction, use controls, and ask questions when unsure', 'Use substitutes without review', 'Remove labels for convenience'], correct: 1 },
+      { q: 'What changed under WHMIS 2015?', options: ['Hazard communication aligned more closely with GHS', 'All hazardous products were banned', 'SDSs were removed', 'Training stopped being needed'], correct: 0 },
+      { q: 'Why is training important even when labels and SDSs exist?', options: ['Because workers need to know how to apply the information to real tasks', 'Because reading is not allowed', 'Because labels give no useful information', 'Because only supervisors use WHMIS'], correct: 0 },
+      { q: 'What is the best overall WHMIS message?', options: ['Know the hazard, know the controls, and use the information before exposure happens', 'Only read labels after a spill', 'SDSs are for emergencies only', 'Experience replaces hazard communication'], correct: 0 },
+    ]
+  },
+  33: {
+    title: 'Video-Specific Safety',
+    questions: [
+      { q: 'What is the purpose of a workplace safety quiz like this?', options: ['To catch people out', 'To reinforce hazard recognition and safe decisions', 'To replace training', 'To avoid reporting'], correct: 1 },
+      { q: 'What should a worker do when they notice a hazard?', options: ['Ignore it if no one is hurt', 'Report it or address it using the workplace process', 'Assume someone else will handle it', 'Wait for inspection day'], correct: 1 },
+      { q: 'Why is task planning important?', options: ['It helps identify hazards before exposure begins', 'It only matters for managers', 'It slows work', 'It removes the need for training'], correct: 0 },
+      { q: 'What is one sign of a stronger control?', options: ['It changes the hazard or exposure, not just the warning', 'It is only a verbal reminder', 'It depends on memory only', 'It delays action'], correct: 0 },
+      { q: 'Why does worker input matter in safety?', options: ['Workers know the task details and practical risks', 'Workers should only receive the final decision', 'It is mainly symbolic', 'It replaces supervision'], correct: 0 },
+      { q: 'Why should incidents and near misses be reviewed?', options: ['They reveal where the system needs improvement', 'They only matter for insurance', 'They are private to the injured worker', 'They should not change the process'], correct: 0 },
+      { q: 'What should happen after corrective actions are assigned?', options: ['They should be tracked and checked', 'The file should close immediately', 'They should be left informal', 'Only HR should know'], correct: 0 },
+      { q: 'Why is communication important in safety?', options: ['People must understand hazards, expectations, and changes', 'Documents are enough on their own', 'Only supervisors need updates', 'Communication is mainly for audits'], correct: 0 },
+      { q: 'What is one weak safety habit?', options: ['Rushing because the task seems routine', 'Checking the work area', 'Using the right tool', 'Asking questions'], correct: 0 },
+      { q: 'What is the best general safety message?', options: ['Notice hazards early, use controls, and act before harm occurs', 'Only major hazards matter', 'Experience removes risk', 'Safety starts after an incident'], correct: 0 },
+    ]
+  },
+  34: {
+    title: 'Beyond the Assessment: Addressing Workplace Factors',
+    questions: [
+      { q: 'What is a psychosocial hazard?', options: ['Only a personal problem outside work', 'A workplace factor that can affect mental or physical well-being', 'A chemical label issue', 'A payroll error only'], correct: 1 },
+      { q: 'Which of the following is a workplace factor that may create psychosocial risk?', options: ['Role confusion, poor communication, or unrealistic workload', 'Wearing gloves', 'Using a ladder', 'Locking out equipment'], correct: 0 },
+      { q: 'Why is it important to address workplace factors, not just worker symptoms?', options: ['Because the work environment may be part of the cause', 'Because symptoms never matter', 'Because workers should fix it alone', 'Because policies replace controls'], correct: 0 },
+      { q: 'What does the risk process involve for psychosocial hazards?', options: ['Recognize, assess, control, and evaluate', 'Guess, react, and move on', 'Wait for a complaint, then close it', 'Only train workers'], correct: 0 },
+      { q: 'Why do conversations matter when addressing psychosocial risk?', options: ['They help surface concerns and support meaningful change', 'They replace all action', 'They are only for managers', 'They should happen only after a crisis'], correct: 0 },
+      { q: 'Which is the strongest control for a psychosocial hazard?', options: ['Tell workers to be more resilient', 'Change the workload, process, expectations, or support system that creates the hazard', 'Ignore anonymous feedback', 'Move the issue to HR and stop there'], correct: 1 },
+      { q: 'Why should employers evaluate controls after making changes?', options: ['To confirm whether the changes actually reduced the risk', 'To fill meeting time', 'Because evaluation is optional', 'To avoid worker feedback'], correct: 0 },
+      { q: 'What is one sign a psychosocial issue should be taken seriously?', options: ['Repeated concerns, tension, conflict, or signs of harm connected to work factors', 'Only one bad day', 'A worker requesting vacation', 'A late lunch break'], correct: 0 },
+      { q: 'What makes a workplace conversation about mental health stronger?', options: ['Blame and assumptions', 'Respect, listening, and a focus on workplace conditions and support', 'Public confrontation', 'Keeping concerns informal forever'], correct: 1 },
+      { q: 'What is the best overall message from the \'Beyond the Assessment\' series?', options: ['Psychosocial hazards belong in the safety system, not outside it', 'Only HR should handle them', 'They cannot be controlled', 'They are less important than physical hazards'], correct: 0 },
+    ]
+  },
+  35: {
+    title: 'Beyond the Assessment: Conversations and Change',
+    questions: [
+      { q: 'What is a psychosocial hazard?', options: ['Only a personal problem outside work', 'A workplace factor that can affect mental or physical well-being', 'A chemical label issue', 'A payroll error only'], correct: 1 },
+      { q: 'Which of the following is a workplace factor that may create psychosocial risk?', options: ['Role confusion, poor communication, or unrealistic workload', 'Wearing gloves', 'Using a ladder', 'Locking out equipment'], correct: 0 },
+      { q: 'Why is it important to address workplace factors, not just worker symptoms?', options: ['Because the work environment may be part of the cause', 'Because symptoms never matter', 'Because workers should fix it alone', 'Because policies replace controls'], correct: 0 },
+      { q: 'What does the risk process involve for psychosocial hazards?', options: ['Recognize, assess, control, and evaluate', 'Guess, react, and move on', 'Wait for a complaint, then close it', 'Only train workers'], correct: 0 },
+      { q: 'Why do conversations matter when addressing psychosocial risk?', options: ['They help surface concerns and support meaningful change', 'They replace all action', 'They are only for managers', 'They should happen only after a crisis'], correct: 0 },
+      { q: 'Which is the strongest control for a psychosocial hazard?', options: ['Tell workers to be more resilient', 'Change the workload, process, expectations, or support system that creates the hazard', 'Ignore anonymous feedback', 'Move the issue to HR and stop there'], correct: 1 },
+      { q: 'Why should employers evaluate controls after making changes?', options: ['To confirm whether the changes actually reduced the risk', 'To fill meeting time', 'Because evaluation is optional', 'To avoid worker feedback'], correct: 0 },
+      { q: 'What is one sign a psychosocial issue should be taken seriously?', options: ['Repeated concerns, tension, conflict, or signs of harm connected to work factors', 'Only one bad day', 'A worker requesting vacation', 'A late lunch break'], correct: 0 },
+      { q: 'What makes a workplace conversation about mental health stronger?', options: ['Blame and assumptions', 'Respect, listening, and a focus on workplace conditions and support', 'Public confrontation', 'Keeping concerns informal forever'], correct: 1 },
+      { q: 'What is the best overall message from the \'Beyond the Assessment\' series?', options: ['Psychosocial hazards belong in the safety system, not outside it', 'Only HR should handle them', 'They cannot be controlled', 'They are less important than physical hazards'], correct: 0 },
+    ]
+  },
+  36: {
+    title: 'Beyond the Assessment: Recognize, Assess, Control and Evaluate',
+    questions: [
+      { q: 'What is a psychosocial hazard?', options: ['Only a personal problem outside work', 'A workplace factor that can affect mental or physical well-being', 'A chemical label issue', 'A payroll error only'], correct: 1 },
+      { q: 'Which of the following is a workplace factor that may create psychosocial risk?', options: ['Role confusion, poor communication, or unrealistic workload', 'Wearing gloves', 'Using a ladder', 'Locking out equipment'], correct: 0 },
+      { q: 'Why is it important to address workplace factors, not just worker symptoms?', options: ['Because the work environment may be part of the cause', 'Because symptoms never matter', 'Because workers should fix it alone', 'Because policies replace controls'], correct: 0 },
+      { q: 'What does the risk process involve for psychosocial hazards?', options: ['Recognize, assess, control, and evaluate', 'Guess, react, and move on', 'Wait for a complaint, then close it', 'Only train workers'], correct: 0 },
+      { q: 'Why do conversations matter when addressing psychosocial risk?', options: ['They help surface concerns and support meaningful change', 'They replace all action', 'They are only for managers', 'They should happen only after a crisis'], correct: 0 },
+      { q: 'Which is the strongest control for a psychosocial hazard?', options: ['Tell workers to be more resilient', 'Change the workload, process, expectations, or support system that creates the hazard', 'Ignore anonymous feedback', 'Move the issue to HR and stop there'], correct: 1 },
+      { q: 'Why should employers evaluate controls after making changes?', options: ['To confirm whether the changes actually reduced the risk', 'To fill meeting time', 'Because evaluation is optional', 'To avoid worker feedback'], correct: 0 },
+      { q: 'What is one sign a psychosocial issue should be taken seriously?', options: ['Repeated concerns, tension, conflict, or signs of harm connected to work factors', 'Only one bad day', 'A worker requesting vacation', 'A late lunch break'], correct: 0 },
+      { q: 'What makes a workplace conversation about mental health stronger?', options: ['Blame and assumptions', 'Respect, listening, and a focus on workplace conditions and support', 'Public confrontation', 'Keeping concerns informal forever'], correct: 1 },
+      { q: 'What is the best overall message from the \'Beyond the Assessment\' series?', options: ['Psychosocial hazards belong in the safety system, not outside it', 'Only HR should handle them', 'They cannot be controlled', 'They are less important than physical hazards'], correct: 0 },
+    ]
+  },
+  37: {
+    title: 'Beyond the Assessment – Psychosocial Safety, Risk and Control',
+    questions: [
+      { q: 'What is a psychosocial hazard?', options: ['Only a personal problem outside work', 'A workplace factor that can affect mental or physical well-being', 'A chemical label issue', 'A payroll error only'], correct: 1 },
+      { q: 'Which of the following is a workplace factor that may create psychosocial risk?', options: ['Role confusion, poor communication, or unrealistic workload', 'Wearing gloves', 'Using a ladder', 'Locking out equipment'], correct: 0 },
+      { q: 'Why is it important to address workplace factors, not just worker symptoms?', options: ['Because the work environment may be part of the cause', 'Because symptoms never matter', 'Because workers should fix it alone', 'Because policies replace controls'], correct: 0 },
+      { q: 'What does the risk process involve for psychosocial hazards?', options: ['Recognize, assess, control, and evaluate', 'Guess, react, and move on', 'Wait for a complaint, then close it', 'Only train workers'], correct: 0 },
+      { q: 'Why do conversations matter when addressing psychosocial risk?', options: ['They help surface concerns and support meaningful change', 'They replace all action', 'They are only for managers', 'They should happen only after a crisis'], correct: 0 },
+      { q: 'Which is the strongest control for a psychosocial hazard?', options: ['Tell workers to be more resilient', 'Change the workload, process, expectations, or support system that creates the hazard', 'Ignore anonymous feedback', 'Move the issue to HR and stop there'], correct: 1 },
+      { q: 'Why should employers evaluate controls after making changes?', options: ['To confirm whether the changes actually reduced the risk', 'To fill meeting time', 'Because evaluation is optional', 'To avoid worker feedback'], correct: 0 },
+      { q: 'What is one sign a psychosocial issue should be taken seriously?', options: ['Repeated concerns, tension, conflict, or signs of harm connected to work factors', 'Only one bad day', 'A worker requesting vacation', 'A late lunch break'], correct: 0 },
+      { q: 'What makes a workplace conversation about mental health stronger?', options: ['Blame and assumptions', 'Respect, listening, and a focus on workplace conditions and support', 'Public confrontation', 'Keeping concerns informal forever'], correct: 1 },
+      { q: 'What is the best overall message from the \'Beyond the Assessment\' series?', options: ['Psychosocial hazards belong in the safety system, not outside it', 'Only HR should handle them', 'They cannot be controlled', 'They are less important than physical hazards'], correct: 0 },
+    ]
+  },
+  38: {
+    title: 'Employer Addresses a Bullying and Harassment Complaint',
+    questions: [
+      { q: 'Why do workplaces need bullying and harassment procedures?', options: ['To make complaints harder', 'To help workers report concerns and ensure they are addressed', 'To replace supervision', 'To avoid documentation'], correct: 1 },
+      { q: 'What is one sign behaviour may be bullying or harassment?', options: ['It creates repeated humiliation, intimidation, or harmful treatment at work', 'It is any disagreement', 'It is always a performance review', 'It only happens face to face'], correct: 0 },
+      { q: 'What should a worker do if they experience or witness bullying and harassment?', options: ['Ignore it if it is uncomfortable', 'Follow the reporting process and document relevant details', 'Post about it online first', 'Wait until it becomes severe'], correct: 1 },
+      { q: 'Why is documentation useful in a complaint process?', options: ['It supports a clearer, fairer review of what happened', 'It replaces investigation', 'It guarantees guilt', 'It is only for HR files'], correct: 0 },
+      { q: 'What should happen after a complaint is received?', options: ['It should be assessed and handled according to procedure', 'It should be ignored unless there is physical violence', 'The complainant should solve it alone', 'The complaint should stay informal forever'], correct: 0 },
+      { q: 'Why is confidentiality important in complaint handling?', options: ['It helps protect fairness and the people involved', 'It prevents any follow-up', 'It means no one can investigate', 'It removes the need to act'], correct: 0 },
+      { q: 'What is a poor response to a complaint?', options: ['Reviewing the facts and next steps', 'Dismissing the concern without using the procedure', 'Separating immediate risk from the full review', 'Taking notes'], correct: 1 },
+      { q: 'What should an employer or workplace leader focus on during a complaint process?', options: ['A fair process, respectful communication, and appropriate action', 'Protecting reputation at any cost', 'Getting a quick answer without facts', 'Avoiding worker input'], correct: 0 },
+      { q: 'Why is worker-to-worker or employer-to-worker context important?', options: ['Because the reporting path and power dynamics can affect how the issue is handled', 'Because procedures never change', 'Because only peers can bully', 'Because employers cannot be involved'], correct: 0 },
+      { q: 'What is the best overall message from these bullying and harassment videos?', options: ['Respectful workplaces need clear procedures, reporting pathways, and follow-through', 'Only severe cases matter', 'Policies alone solve the problem', 'Workers should keep concerns private'], correct: 0 },
+    ]
+  },
+  39: {
+    title: 'What Does Bullying and Harassment Mean for You and Your Workplace?',
+    questions: [
+      { q: 'Why do workplaces need bullying and harassment procedures?', options: ['To make complaints harder', 'To help workers report concerns and ensure they are addressed', 'To replace supervision', 'To avoid documentation'], correct: 1 },
+      { q: 'What is one sign behaviour may be bullying or harassment?', options: ['It creates repeated humiliation, intimidation, or harmful treatment at work', 'It is any disagreement', 'It is always a performance review', 'It only happens face to face'], correct: 0 },
+      { q: 'What should a worker do if they experience or witness bullying and harassment?', options: ['Ignore it if it is uncomfortable', 'Follow the reporting process and document relevant details', 'Post about it online first', 'Wait until it becomes severe'], correct: 1 },
+      { q: 'Why is documentation useful in a complaint process?', options: ['It supports a clearer, fairer review of what happened', 'It replaces investigation', 'It guarantees guilt', 'It is only for HR files'], correct: 0 },
+      { q: 'What should happen after a complaint is received?', options: ['It should be assessed and handled according to procedure', 'It should be ignored unless there is physical violence', 'The complainant should solve it alone', 'The complaint should stay informal forever'], correct: 0 },
+      { q: 'Why is confidentiality important in complaint handling?', options: ['It helps protect fairness and the people involved', 'It prevents any follow-up', 'It means no one can investigate', 'It removes the need to act'], correct: 0 },
+      { q: 'What is a poor response to a complaint?', options: ['Reviewing the facts and next steps', 'Dismissing the concern without using the procedure', 'Separating immediate risk from the full review', 'Taking notes'], correct: 1 },
+      { q: 'What should an employer or workplace leader focus on during a complaint process?', options: ['A fair process, respectful communication, and appropriate action', 'Protecting reputation at any cost', 'Getting a quick answer without facts', 'Avoiding worker input'], correct: 0 },
+      { q: 'Why is worker-to-worker or employer-to-worker context important?', options: ['Because the reporting path and power dynamics can affect how the issue is handled', 'Because procedures never change', 'Because only peers can bully', 'Because employers cannot be involved'], correct: 0 },
+      { q: 'What is the best overall message from these bullying and harassment videos?', options: ['Respectful workplaces need clear procedures, reporting pathways, and follow-through', 'Only severe cases matter', 'Policies alone solve the problem', 'Workers should keep concerns private'], correct: 0 },
+    ]
+  },
+  40: {
+    title: 'When the Employer Is the Bully',
+    questions: [
+      { q: 'Why do workplaces need bullying and harassment procedures?', options: ['To make complaints harder', 'To help workers report concerns and ensure they are addressed', 'To replace supervision', 'To avoid documentation'], correct: 1 },
+      { q: 'What is one sign behaviour may be bullying or harassment?', options: ['It creates repeated humiliation, intimidation, or harmful treatment at work', 'It is any disagreement', 'It is always a performance review', 'It only happens face to face'], correct: 0 },
+      { q: 'What should a worker do if they experience or witness bullying and harassment?', options: ['Ignore it if it is uncomfortable', 'Follow the reporting process and document relevant details', 'Post about it online first', 'Wait until it becomes severe'], correct: 1 },
+      { q: 'Why is documentation useful in a complaint process?', options: ['It supports a clearer, fairer review of what happened', 'It replaces investigation', 'It guarantees guilt', 'It is only for HR files'], correct: 0 },
+      { q: 'What should happen after a complaint is received?', options: ['It should be assessed and handled according to procedure', 'It should be ignored unless there is physical violence', 'The complainant should solve it alone', 'The complaint should stay informal forever'], correct: 0 },
+      { q: 'Why is confidentiality important in complaint handling?', options: ['It helps protect fairness and the people involved', 'It prevents any follow-up', 'It means no one can investigate', 'It removes the need to act'], correct: 0 },
+      { q: 'What is a poor response to a complaint?', options: ['Reviewing the facts and next steps', 'Dismissing the concern without using the procedure', 'Separating immediate risk from the full review', 'Taking notes'], correct: 1 },
+      { q: 'What should an employer or workplace leader focus on during a complaint process?', options: ['A fair process, respectful communication, and appropriate action', 'Protecting reputation at any cost', 'Getting a quick answer without facts', 'Avoiding worker input'], correct: 0 },
+      { q: 'Why is worker-to-worker or employer-to-worker context important?', options: ['Because the reporting path and power dynamics can affect how the issue is handled', 'Because procedures never change', 'Because only peers can bully', 'Because employers cannot be involved'], correct: 0 },
+      { q: 'What is the best overall message from these bullying and harassment videos?', options: ['Respectful workplaces need clear procedures, reporting pathways, and follow-through', 'Only severe cases matter', 'Policies alone solve the problem', 'Workers should keep concerns private'], correct: 0 },
+    ]
+  },
+  41: {
+    title: 'Worker-to-Worker Bullying and Harassment',
+    questions: [
+      { q: 'Why do workplaces need bullying and harassment procedures?', options: ['To make complaints harder', 'To help workers report concerns and ensure they are addressed', 'To replace supervision', 'To avoid documentation'], correct: 1 },
+      { q: 'What is one sign behaviour may be bullying or harassment?', options: ['It creates repeated humiliation, intimidation, or harmful treatment at work', 'It is any disagreement', 'It is always a performance review', 'It only happens face to face'], correct: 0 },
+      { q: 'What should a worker do if they experience or witness bullying and harassment?', options: ['Ignore it if it is uncomfortable', 'Follow the reporting process and document relevant details', 'Post about it online first', 'Wait until it becomes severe'], correct: 1 },
+      { q: 'Why is documentation useful in a complaint process?', options: ['It supports a clearer, fairer review of what happened', 'It replaces investigation', 'It guarantees guilt', 'It is only for HR files'], correct: 0 },
+      { q: 'What should happen after a complaint is received?', options: ['It should be assessed and handled according to procedure', 'It should be ignored unless there is physical violence', 'The complainant should solve it alone', 'The complaint should stay informal forever'], correct: 0 },
+      { q: 'Why is confidentiality important in complaint handling?', options: ['It helps protect fairness and the people involved', 'It prevents any follow-up', 'It means no one can investigate', 'It removes the need to act'], correct: 0 },
+      { q: 'What is a poor response to a complaint?', options: ['Reviewing the facts and next steps', 'Dismissing the concern without using the procedure', 'Separating immediate risk from the full review', 'Taking notes'], correct: 1 },
+      { q: 'What should an employer or workplace leader focus on during a complaint process?', options: ['A fair process, respectful communication, and appropriate action', 'Protecting reputation at any cost', 'Getting a quick answer without facts', 'Avoiding worker input'], correct: 0 },
+      { q: 'Why is worker-to-worker or employer-to-worker context important?', options: ['Because the reporting path and power dynamics can affect how the issue is handled', 'Because procedures never change', 'Because only peers can bully', 'Because employers cannot be involved'], correct: 0 },
+      { q: 'What is the best overall message from these bullying and harassment videos?', options: ['Respectful workplaces need clear procedures, reporting pathways, and follow-through', 'Only severe cases matter', 'Policies alone solve the problem', 'Workers should keep concerns private'], correct: 0 },
+    ]
+  },
+  42: {
+    title: 'Slips, Trips, and Falls: Office (Full-length version)',
+    questions: [
+      { q: 'What is one key message about slips, trips, and falls in offices?', options: ['They only happen in industrial areas', 'They are common and preventable with practical controls', 'They only happen in winter', 'They are mostly unavoidable'], correct: 1 },
+      { q: 'What is a common trip hazard in an office?', options: ['Clear walkways', 'Cords, clutter, or open drawers in walking paths', 'Proper lighting', 'Dry floors'], correct: 1 },
+      { q: 'Why does housekeeping matter for office fall prevention?', options: ['Clean, clear areas reduce slip and trip exposure', 'It is mainly for appearance', 'It only matters for cleaners', 'It does not affect safety'], correct: 0 },
+      { q: 'What can make a floor a slip hazard?', options: ['Wet, greasy, dusty, or contaminated surfaces', 'A nearby window', 'A lunch break', 'A chair in use'], correct: 0 },
+      { q: 'Why is proper lighting important?', options: ['Workers need to see changes in surfaces, obstacles, and steps', 'Lighting only affects comfort', 'It matters only in stairwells', 'It replaces housekeeping'], correct: 0 },
+      { q: 'What is one behavioural factor that increases office fall risk?', options: ['Paying attention while walking', 'Rushing or distracted walking', 'Using handrails', 'Reporting hazards'], correct: 1 },
+      { q: 'What should happen when a spill is found?', options: ['Leave it for the next shift', 'Address it or report it right away and warn others as needed', 'Walk around it for the day', 'Cover it with paper only'], correct: 1 },
+      { q: 'Why should workers report damaged flooring or recurring hazards?', options: ['Because repeated hazards need corrective action, not workarounds only', 'Because minor issues never matter', 'Because only management notices hazards', 'Because hazard reports are optional'], correct: 0 },
+      { q: 'What is one strong office-fall prevention control?', options: ['Permanent use of extension cords across walkways', 'Keeping paths clear and surfaces maintained', 'Stacking materials near exits', 'Ignoring footwear choices in wet weather'], correct: 1 },
+      { q: 'What is the best overall office fall-prevention message?', options: ['Watch where you walk, control the surface, and fix hazards early', 'Falls are mostly random', 'Only staircases need attention', 'Office falls are low priority'], correct: 0 },
+    ]
+  },
+};
+
+const BUCKETS = {
+  Warehouse: { icon:"🏭", color:"#0057A8", videos:[
+    {id:1,  title:"Crown DP MoveSafe® Forklift Operator Training",            dur:"18 min", url:"https://www.youtube.com/embed/dq5TWOYS2G8"},
+    {id:2,  title:"Forklift Safety: Pedestrians around Lift Trucks",           dur:"12 min", url:"https://www.youtube.com/embed/xhScsHcIdek"},
+    {id:3,  title:"Forklift Safety: Stay in the Cab, Stay Alive",              dur:"8 min",  url:"https://www.youtube.com/embed/6ENdqUnFCXQ"},
+    {id:4,  title:"Raymond 4250 Forklift Safety Video",                        dur:"14 min", url:"https://www.youtube.com/embed/htc7cAjqy7s"},
+    {id:5,  title:"Raymond Reach Truck | Basic Training Supplement",           dur:"10 min", url:"https://www.youtube.com/embed/0xhO47UAf1U"},
+    {id:6,  title:"How Do You Safely Stack Tyres?",                            dur:"6 min",  url:"https://www.youtube.com/embed/6dHR8yh3wkY"},
+    {id:7,  title:"Lifting in the Workplace",                                  dur:"9 min",  url:"https://www.youtube.com/embed/zss9jRW4oWw"},
+    {id:8,  title:"Safe Lifting in the Workplace",                             dur:"11 min", url:"https://www.youtube.com/embed/251OvQNaVVg"},
+    {id:9,  title:"Golfer\'s Lift",                                           dur:"5 min",  url:"https://www.youtube.com/embed/ePRio930OuE"},
+    {id:10, title:"Half Kneel Lift",                                           dur:"4 min",  url:"https://www.youtube.com/embed/w5XZZWWps6w"},
+    {id:11, title:"Squat Lift",                                                dur:"4 min",  url:"https://www.youtube.com/embed/wdInvsWlwRk"},
+    {id:12, title:"Straddle Lift",                                             dur:"4 min",  url:"https://www.youtube.com/embed/oDOJnOI3Cqc"},
+    {id:13, title:"Ladders in Manufacturing",                                  dur:"10 min", url:"https://www.youtube.com/embed/3UNzU2A9gf4"},
+    {id:14, title:"Incident Investigation: Young Worker Falls From Forklift",  dur:"7 min",  url:"https://www.youtube.com/embed/Ifgs91vwJlg"},
+    {id:15, title:"Incident Investigation: Young Worker Run Over by Forklift", dur:"7 min",  url:"https://www.youtube.com/embed/rhzfL4iK00o"},
+  ]},
+  Delivery: { icon:"🚚", color:"#005FA3", videos:[
+    {id:16, title:"Distracted Driving (Metric)",                               dur:"12 min", url:"https://www.youtube.com/embed/GWi1Pj7hOwU"},
+    {id:17, title:"Driving for Work: The Journey Management Process",          dur:"15 min", url:"https://www.youtube.com/embed/PWcCfUt9l0U"},
+    {id:18, title:"Road Safety: Employer Responsibility",                      dur:"10 min", url:"https://www.youtube.com/embed/rYgZpyNR7uY"},
+    {id:19, title:"SAFE Work Manitoba – SAFE Driving for Your Work",           dur:"20 min", url:"https://www.youtube.com/embed/IMl2D34gE_k"},
+    {id:20, title:"Respect the Cone Zone",                                     dur:"8 min",  url:"https://www.youtube.com/embed/X7HlqRflDEU"},
+    {id:21, title:"Safety With Every Step: Commercial Delivery",               dur:"9 min",  url:"https://www.youtube.com/embed/1RfRV0rzyBY"},
+    {id:22, title:"Safety With Every Step: Last Mile Delivery",                dur:"9 min",  url:"https://www.youtube.com/embed/FVnzgaeJ9lQ"},
+  ]},
+  Management: { icon:"👔", color:"#004A8C", videos:[
+    {id:23, title:"Conducting a Hazard Assessment",                            dur:"13 min", url:"https://www.youtube.com/embed/1vGg5royOBo"},
+    {id:24, title:"The Good, the Bad and the Hazardous",                       dur:"11 min", url:"https://www.youtube.com/embed/--_EqJ65GbA"},
+    {id:25, title:"Conducting an Incident Investigation",                      dur:"14 min", url:"https://www.youtube.com/embed/hQilV-mOnC4"},
+    {id:26, title:"Frighteningly Common, Easily Preventable",                  dur:"9 min",  url:"https://www.youtube.com/embed/Iya2OybsjIw"},
+    {id:27, title:"Helping Injured Workers Return to Work",                    dur:"12 min", url:"https://www.youtube.com/embed/xBnD0GpdBd0"},
+    {id:28, title:"Make Zero Your Goal",                                       dur:"8 min",  url:"https://www.youtube.com/embed/eNrMEjZcLPk"},
+    {id:29, title:"Plain Language Helps Workplace Health and Safety",          dur:"10 min", url:"https://www.youtube.com/embed/keAzRN-v-lE"},
+    {id:30, title:"8 Tips to Make Your H&S Committee Meetings More Effective", dur:"11 min", url:"https://www.youtube.com/embed/2Ue3njkQ1bY"},
+    {id:31, title:"WHMIS 2015 for Employers",                                  dur:"16 min", url:"https://www.youtube.com/embed/j30RtmFYag8"},
+    {id:32, title:"WHMIS 2015 for Workers",                                    dur:"14 min", url:"https://www.youtube.com/embed/7hPaHpEEG60"},
+    {id:33, title:"Video-Specific Safety Quiz",                                dur:"7 min",  url:"https://www.youtube.com/embed/MX__xOCGWLk"},
+  ]},
+  "Health & Safety": { icon:"🦺", color:"#003D7A", videos:[
+    {id:34, title:"Beyond the Assessment: Addressing Workplace Factors",             dur:"11 min", url:"https://www.youtube.com/embed/ofx9B9ax5JU"},
+    {id:35, title:"Beyond the Assessment: Conversations and Change",                 dur:"10 min", url:"https://www.youtube.com/embed/F1_vfDBWOQM"},
+    {id:36, title:"Beyond the Assessment: Recognize, Assess, Control & Evaluate",   dur:"12 min", url:"https://www.youtube.com/embed/08SSGnUZsSg"},
+    {id:37, title:"Beyond the Assessment – Psychosocial Safety, Risk and Control",  dur:"13 min", url:"https://www.youtube.com/embed/1S4hbyDKKqg"},
+    {id:38, title:"Employer Addresses a Bullying and Harassment Complaint",          dur:"9 min",  url:"https://www.youtube.com/embed/K8ObyQz3Rhw"},
+    {id:39, title:"What Does Bullying and Harassment Mean for You?",                 dur:"11 min", url:"https://www.youtube.com/embed/u7e2c6v1oDs"},
+    {id:40, title:"When the Employer Is the Bully",                                  dur:"10 min", url:"https://www.youtube.com/embed/YD-LxanO1jA"},
+    {id:41, title:"Worker-to-Worker Bullying and Harassment",                        dur:"9 min",  url:"https://www.youtube.com/embed/2p5dAP6APiw"},
+    {id:42, title:"Slips, Trips, and Falls: Office",                                 dur:"8 min",  url:"https://www.youtube.com/embed/VGnO_OqEq5E"},
+  ]}
+};
+
+const VIDEO_TO_BUCKET = {};
+Object.entries(BUCKETS).forEach(([b,d]) => d.videos.forEach(v => VIDEO_TO_BUCKET[v.id] = b));
+
+const S = {
+  app:{fontFamily:"'Arial Narrow',Arial,sans-serif",background:"#0a0f1a",minHeight:"100vh",color:"#e8edf5",display:"flex",flexDirection:"column"},
+  hdr:{background:"linear-gradient(135deg,#001F3F,#002a5c)",borderBottom:"3px solid #00A8E8",padding:"12px 22px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0},
+  logo:{background:"#0057A8",color:"#fff",fontWeight:900,fontSize:18,letterSpacing:2,padding:"4px 11px",borderRadius:4},
+  logoTxt:{fontSize:11,color:"#00A8E8",letterSpacing:3,textTransform:"uppercase",fontWeight:600},
+  main:{display:"flex",flex:1,minHeight:0,overflow:"hidden"},
+  sidebar:{width:220,background:"#0d1526",borderRight:"1px solid #1a2d4a",overflowY:"auto",flexShrink:0,display:"flex",flexDirection:"column"},
+  sideTab:a=>({padding:"12px 16px",cursor:"pointer",borderLeft:a?"4px solid #00A8E8":"4px solid transparent",background:a?"rgba(0,168,232,0.07)":"transparent",borderBottom:"1px solid #111d2e",transition:"all 0.2s"}),
+  content:{flex:1,overflowY:"auto",padding:20},
+  bktHead:{marginBottom:16,paddingBottom:14,borderBottom:"1px solid #1a2d4a"},
+  vCard:(d,a)=>({background:a?"rgba(0,87,168,0.22)":d?"rgba(0,168,100,0.07)":"#111d2e",border:a?"2px solid #0057A8":d?"2px solid rgba(0,200,100,0.3)":"2px solid #1a2d4a",borderRadius:9,padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,transition:"all 0.2s"}),
+  vNum:d=>({width:28,height:28,borderRadius:"50%",border:d?"2px solid #00c864":"2px solid #2a4060",background:d?"rgba(0,200,100,0.18)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,color:d?"#00c864":"#4a6a8a",fontWeight:700}),
+  scoreTag:s=>({fontSize:11,fontWeight:700,padding:"2px 7px",borderRadius:20,background:s>=7?"rgba(0,200,100,0.2)":"rgba(255,80,80,0.2)",color:s>=7?"#00c864":"#ff5050",flexShrink:0}),
+  player:{background:"#080d18",borderBottom:"1px solid #1a2d4a",padding:"0 22px 18px",flexShrink:0},
+  pTitle:{padding:"12px 0 8px",fontSize:14,fontWeight:700,color:"#fff",display:"flex",alignItems:"center",gap:8},
+  vFrame:{width:"100%",aspectRatio:"16/9",border:"none",borderRadius:8,background:"#000",maxHeight:340},
+  pBtns:{display:"flex",alignItems:"center",gap:10,marginTop:10,flexWrap:"wrap"},
+  quizBtn:{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"11px 24px",borderRadius:7,fontSize:14,fontWeight:700,cursor:"pointer"},
+  closeBtn:{background:"transparent",border:"1px solid #2a4060",color:"#7a9abf",padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:11},
+  nameInput:{background:"#111d2e",border:"2px solid #2a4060",color:"#fff",padding:"12px 20px",borderRadius:8,fontSize:16,width:300,outline:"none"},
+  locSel:{background:"#111d2e",border:"2px solid #2a4060",color:"#fff",padding:"12px 20px",borderRadius:8,fontSize:15,width:344,outline:"none",cursor:"pointer"},
+  nameBtn:{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"13px 38px",borderRadius:8,fontSize:15,fontWeight:700,cursor:"pointer"},
+  qWrap:{background:"#080d18",borderBottom:"1px solid #1a2d4a",flexShrink:0},
+  qHdr:{padding:"14px 22px 10px",display:"flex",alignItems:"flex-start",justifyContent:"space-between",borderBottom:"1px solid #1a2d4a"},
+  qLabel:{fontSize:10,letterSpacing:3,color:"#00A8E8",textTransform:"uppercase",fontWeight:700,marginBottom:4},
+  qTitle:{fontSize:14,fontWeight:700,color:"#fff"},
+  qList:{maxHeight:460,overflowY:"auto"},
+  qBlock:{padding:"16px 22px",borderBottom:"1px solid #111d2e"},
+  qNum:{fontSize:10,color:"#4a6a8a",letterSpacing:2,textTransform:"uppercase",marginBottom:5},
+  qText:{fontSize:14,fontWeight:600,color:"#e8edf5",lineHeight:1.5,marginBottom:10},
+  optList:{display:"grid",gap:7},
+  opt:s=>({display:"flex",alignItems:"center",gap:10,padding:"9px 12px",background:s?"rgba(0,87,168,0.3)":"rgba(255,255,255,0.03)",border:s?"2px solid #00A8E8":"2px solid #1a2d4a",borderRadius:7,cursor:"pointer",transition:"all 0.15s"}),
+  optDot:s=>({fontSize:15,color:s?"#00A8E8":"#2a4060",flexShrink:0}),
+  optTxt:{fontSize:13,color:"#cde",lineHeight:1.4},
+  subBtn:{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"12px 32px",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"},
+  subBtnOff:{background:"#1a2d4a",color:"#4a6a8a",border:"none",padding:"12px 32px",borderRadius:8,fontSize:14,cursor:"not-allowed"},
+  rWrap:{maxHeight:460,overflowY:"auto"},
+  rScore:p=>({margin:"18px 22px",padding:"18px",background:p?"rgba(0,200,100,0.08)":"rgba(255,80,80,0.08)",border:p?"2px solid rgba(0,200,100,0.3)":"2px solid rgba(255,80,80,0.3)",borderRadius:12,textAlign:"center"}),
+  rNum:{fontSize:50,fontWeight:900,color:"#fff",lineHeight:1},
+  rLbl:{fontSize:16,fontWeight:700,marginTop:6,color:"#fff"},
+  rSub:{fontSize:12,color:"#7a9abf",marginTop:5,lineHeight:1.5},
+  revItem:{padding:"9px 0",borderBottom:"1px solid #111d2e"},
+  revQ:{fontSize:12,fontWeight:600,color:"#cde",marginBottom:3},
+  finBtn:{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"11px 30px",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"},
+  retBtn:{background:"rgba(255,255,255,0.05)",color:"#7a9abf",border:"1px solid #2a4060",padding:"11px 20px",borderRadius:8,fontSize:13,cursor:"pointer"},
+  overlay:{position:"fixed",inset:0,background:"rgba(0,0,0,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:99},
+  modal:{background:"linear-gradient(135deg,#0d1526,#111d2e)",border:"2px solid #0057A8",borderRadius:14,width:"90%",maxWidth:440,overflow:"hidden"},
+  mHdr:{background:"linear-gradient(135deg,#001F3F,#002a5c)",padding:"24px 28px 18px",textAlign:"center"},
+  mTitle:{fontSize:18,fontWeight:800,color:"#fff",marginBottom:5},
+  mScore:p=>({fontSize:14,fontWeight:700,color:p?"#00c864":"#ff5050"}),
+  mBody:{padding:"18px 26px 8px"},
+  mLabel:{fontSize:10,letterSpacing:3,color:"#00A8E8",textTransform:"uppercase",fontWeight:700,marginBottom:10},
+  mRow:{display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:"1px solid #1a2d4a"},
+  mKey:{fontSize:11,color:"#4a6a8a",textTransform:"uppercase",letterSpacing:1},
+  mVal:{fontSize:12,color:"#e8edf5",fontWeight:600,textAlign:"right"},
+  mNote:{padding:"10px 26px",fontSize:11,color:"#7a9abf",lineHeight:1.6},
+  mBtns:{padding:"10px 26px 22px",display:"flex",flexDirection:"column",gap:9},
+  recBtn:{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"13px",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer",width:"100%"},
+  certOv:{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100},
+  certBox:{background:"linear-gradient(135deg,#001F3F,#002a5c)",border:"3px solid #00A8E8",borderRadius:14,padding:"38px 46px",textAlign:"center",maxWidth:420,width:"90%"},
+  certTop:{fontSize:11,letterSpacing:4,color:"#00A8E8",textTransform:"uppercase",marginBottom:5},
+  certName:{fontSize:28,fontWeight:900,color:"#fff",marginBottom:4},
+  certSub:{fontSize:12,color:"#7a9abf",marginBottom:5},
+  certBkt:{fontSize:18,fontWeight:700,color:"#00A8E8",marginBottom:14},
+  certOrg:{fontSize:11,color:"#7a9abf",marginBottom:22,lineHeight:1.8},
+  certBtn:{background:"#0057A8",color:"#fff",border:"none",padding:"10px 26px",borderRadius:7,fontSize:13,fontWeight:700,cursor:"pointer"},
+};
+
+function QuizPanel({videoId,onComplete,onClose}) {
+  const quiz=QUIZZES[videoId];
+  const [ans,setAns]=useState({});
+  const [done,setDone]=useState(false);
+  const [score,setScore]=useState(0);
+  if(!quiz) return <div style={S.qWrap}><div style={S.qHdr}><span style={S.qTitle}>No quiz</span><button style={S.closeBtn} onClick={onClose}>✕</button></div></div>;
+  const allAns=Object.keys(ans).length===quiz.questions.length;
+  const passed=score>=7;
+  function submit(){
+    if(!allAns){alert("Please answer all questions.");return;}
+    let s=0;quiz.questions.forEach((q,i)=>{if(ans[i]===q.correct)s++;});
+    setScore(s);setDone(true);
+  }
+  return(
+    <div style={S.qWrap}>
+      <div style={S.qHdr}>
+        <div><div style={S.qLabel}>QUIZ · {Object.keys(ans).length}/{quiz.questions.length}</div><div style={S.qTitle}>{quiz.title}</div></div>
+        <button style={S.closeBtn} onClick={onClose}>✕ Close</button>
+      </div>
+      {done?(
+        <div style={S.rWrap}>
+          <div style={S.rScore(passed)}>
+            <div style={S.rNum}>{score}<span style={{fontSize:24}}>/10</span></div>
+            <div style={S.rLbl}>{passed?"✅ PASSED":"❌ TRY AGAIN"}</div>
+            <div style={S.rSub}>{passed?"Great work! Saving your result now...":"Need 7/10 to pass. Review the video and retry."}</div>
+          </div>
+          <div style={{padding:"0 22px"}}>
+            {quiz.questions.map((q,i)=>{const ok=ans[i]===q.correct;return(
+              <div key={i} style={S.revItem}>
+                <div style={S.revQ}>{i+1}. {q.q}</div>
+                <div style={{fontSize:11,color:ok?"#00c864":"#ff6060"}}>{ok?"✓":"✗"} {q.options[ans[i]]}</div>
+                {!ok&&<div style={{fontSize:11,color:"#00c864",marginTop:2}}>✓ Correct: {q.options[q.correct]}</div>}
+              </div>
+            );})}
+          </div>
+          <div style={{padding:"12px 22px 22px",display:"flex",gap:10}}>
+            <button style={S.finBtn} onClick={()=>onComplete(score,passed?"Pass":"Fail")}>{passed?"Continue →":"↩ Retry"}</button>
+            {passed&&<button style={S.retBtn} onClick={()=>{setAns({});setDone(false);setScore(0);}}>Retake</button>}
+          </div>
+        </div>
+      ):(
+        <div style={S.qList}>
+          {quiz.questions.map((q,i)=>(
+            <div key={i} style={S.qBlock}>
+              <div style={S.qNum}>Question {i+1} of {quiz.questions.length}</div>
+              <div style={S.qText}>{q.q}</div>
+              <div style={S.optList}>
+                {q.options.map((opt,j)=>(
+                  <div key={j} style={S.opt(ans[i]===j)} onClick={()=>setAns(p=>({...p,[i]:j}))}>
+                    <span style={S.optDot(ans[i]===j)}>{ans[i]===j?"●":"○"}</span>
+                    <span style={S.optTxt}>{opt}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div style={{padding:"8px 22px 24px"}}>
+            <div style={{fontSize:11,color:"#4a6a8a",marginBottom:9}}>{Object.keys(ans).length}/{quiz.questions.length} answered</div>
+            <button style={allAns?S.subBtn:S.subBtnOff} onClick={submit}>Submit Quiz →</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultsModal({name,loc,bucket,video,score,pf,onDone}) {
+  const [status,setStatus]=useState("submitting");
+  const date=new Date().toISOString().split("T")[0];
+  const passed=pf==="Pass";
+  useEffect(()=>{
+    if(!passed){setStatus("fail");return;}
+    submitResult({employeeName:name,location:loc,bucket,videoTitle:video,score,passFail:pf,date})
+      .then(r=>setStatus(r.success?"success":"error"));
+  },[]);
+  const icons={submitting:"⏳",success:"✅",fail:"📝",error:"⚠️"};
+  const titles={submitting:"Saving Result...",success:"Result Saved!",fail:"Quiz Complete",error:"Save Issue"};
+  return(
+    <div style={S.overlay}>
+      <div style={S.modal}>
+        <div style={S.mHdr}>
+          <div style={{fontSize:40,marginBottom:8}}>{icons[status]}</div>
+          <div style={S.mTitle}>{titles[status]}</div>
+          <div style={S.mScore(passed)}>{score}/10 — {pf}</div>
+        </div>
+        <div style={S.mBody}>
+          <div style={S.mLabel}>RESULT SUMMARY</div>
+          {[["Employee",name],["Location",loc],["Bucket",bucket],["Video",video],["Score",score+"/10"],["Result",pf],["Date",date]].map(([k,v])=>(
+            <div key={k} style={S.mRow}>
+              <span style={S.mKey}>{k}</span>
+              <span style={{...S.mVal,color:k==="Result"?(passed?"#00c864":"#ff5050"):"#e8edf5",fontWeight:k==="Result"?700:600}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={S.mNote}>
+          {status==="submitting"&&"⏳ Saving to SharePoint Training Results list..."}
+          {status==="success"&&"✅ Result saved automatically! Your manager can see this now."}
+          {status==="fail"&&"Review the video and retry when ready."}
+          {status==="error"&&"⚠️ Could not auto-save. Please screenshot this and send to your manager."}
+        </div>
+        <div style={S.mBtns}>
+          <button style={{...S.recBtn,opacity:status==="submitting"?0.5:1}} disabled={status==="submitting"} onClick={onDone}>
+            {status==="submitting"?"Saving...":"Continue →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Certificate({bucket,name,onClose}) {
+  return(
+    <div style={S.certOv}>
+      <div style={S.certBox}>
+        <div style={{fontSize:52,marginBottom:10}}>🏆</div>
+        <div style={S.certTop}>Certificate of Completion</div>
+        <div style={S.certName}>{name}</div>
+        <div style={S.certSub}>has successfully completed all training in</div>
+        <div style={S.certBkt}>{bucket} Safety Training</div>
+        <div style={S.certOrg}>North Country Tire Distributors<br/>{new Date().toLocaleDateString("en-CA",{year:"numeric",month:"long",day:"numeric"})}</div>
+        <button style={S.certBtn} onClick={onClose}>Continue Training →</button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [prog,setProg]=useState({done:{},scores:{}});
+  const [bucket,setBucket]=useState("Warehouse");
+  const [video,setVideo]=useState(null);
+  const [quiz,setQuiz]=useState(false);
+  const [modal,setModal]=useState(null);
+  const [cert,setCert]=useState(null);
+  const [name,setName]=useState("");
+  const [loc,setLoc]=useState("");
+  const [nameIn,setNameIn]=useState("");
+  const [locIn,setLocIn]=useState("");
+  const [started,setStarted]=useState(false);
+
+  const total=Object.values(BUCKETS).reduce((a,b)=>a+b.videos.length,0);
+  const totalDone=Object.keys(prog.done).length;
+  const pct=Math.round(totalDone/total*100);
+  function bktDone(b){return BUCKETS[b].videos.filter(v=>prog.done[v.id]).length;}
+  function start(){
+    if(!nameIn.trim()){alert("Please enter your name.");return;}
+    if(!locIn){alert("Please select your location.");return;}
+    setName(nameIn.trim());setLoc(locIn);setStarted(true);
+  }
+  function onQuizComplete(score,pf){setQuiz(false);setModal({score,pf});}
+  function onModalDone(){
+    if(!video||!modal)return;
+    if(modal.pf==="Fail"){setModal(null);return;}
+    const updated={done:{...prog.done,[video.id]:true},scores:{...prog.scores,[video.id]:modal.score}};
+    setProg(updated);setModal(null);
+    const b=VIDEO_TO_BUCKET[video.id];
+    if(b&&BUCKETS[b].videos.every(v=>updated.done[v.id]))setCert(b);
+  }
+  const bData=BUCKETS[bucket];
+  const bDone=bktDone(bucket);
+  const bPct=Math.round(bDone/bData.videos.length*100);
+
+  if(!started) return(
+    <div style={{...S.app,justifyContent:"center"}}>
+      <div style={S.hdr}><div style={{display:"flex",alignItems:"center",gap:12}}><div style={S.logo}>NCT</div><div style={S.logoTxt}>Safety Training Portal</div></div></div>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1,justifyContent:"center",gap:18,padding:40}}>
+        <div style={{fontSize:52}}>🦺</div>
+        <div style={{fontSize:26,fontWeight:800,color:"#fff",textAlign:"center"}}>Welcome to NCT Safety Training</div>
+        <div style={{color:"#7a9abf",fontSize:13,textAlign:"center",maxWidth:380,lineHeight:1.7}}>Enter your name and location to begin.<br/>Your results are recorded automatically.</div>
+        <input style={S.nameInput} placeholder="Your full name" value={nameIn} onChange={e=>setNameIn(e.target.value)} onKeyDown={e=>e.key==="Enter"&&start()} autoFocus/>
+        <select style={S.locSel} value={locIn} onChange={e=>setLocIn(e.target.value)}>
+          <option value="">Select your location...</option>
+          {["Edmonton","Calgary","Kelowna","Langley","Winnipeg"].map(l=><option key={l} value={l}>{l}</option>)}
+        </select>
+        <button style={S.nameBtn} onClick={start}>Start Training →</button>
+        <div style={{fontSize:11,color:"#2a4060"}}>Own Safety. Protect the Team.</div>
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={S.app}>
+      <div style={S.hdr}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={S.logo}>NCT</div>
+          <div><div style={S.logoTxt}>Safety Training Portal</div><div style={{fontSize:10,color:"#4a6a8a"}}>👤 {name} · 📍 {loc}</div></div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10,color:"#4a6a8a",letterSpacing:2,textTransform:"uppercase"}}>Overall Progress</div>
+          <div style={{fontSize:26,fontWeight:900,color:"#00A8E8",lineHeight:1}}>{pct}%</div>
+          <div style={{fontSize:10,color:"#4a6a8a"}}>{totalDone}/{total} complete</div>
+          <div style={{width:130,height:4,background:"#1a2740",borderRadius:2,overflow:"hidden",marginTop:4}}>
+            <div style={{height:"100%",width:pct+"%",background:"linear-gradient(90deg,#0057A8,#00A8E8)",transition:"width 0.6s"}}/>
+          </div>
+        </div>
+      </div>
+      {video&&!quiz&&(
+        <div style={S.player}>
+          <div style={S.pTitle}><span style={{color:"#00A8E8"}}>▶</span><span style={{flex:1}}>{video.title}</span><button style={S.closeBtn} onClick={()=>setVideo(null)}>✕ Close</button></div>
+          <iframe style={S.vFrame} src={video.url} allowFullScreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" title={video.title}/>
+          <div style={S.pBtns}>
+            <button style={S.quizBtn} onClick={()=>setQuiz(true)}>📝 Take Quiz →</button>
+            {prog.done[video.id]&&<div style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#00c864"}}>✅ Completed {prog.scores[video.id]!==undefined&&<span style={S.scoreTag(prog.scores[video.id])}>{prog.scores[video.id]}/10</span>}</div>}
+          </div>
+        </div>
+      )}
+      {video&&quiz&&<QuizPanel videoId={video.id} onComplete={onQuizComplete} onClose={()=>setQuiz(false)}/>}
+      <div style={S.main}>
+        <div style={S.sidebar}>
+          {Object.entries(BUCKETS).map(([b,d])=>{
+            const dn=bktDone(b),tot=d.videos.length,p=Math.round(dn/tot*100),act=bucket===b;
+            return<div key={b} style={S.sideTab(act)} onClick={()=>{setBucket(b);setVideo(null);setQuiz(false);}}>
+              <div style={{display:"flex",alignItems:"center"}}>
+                <span style={{fontSize:15,marginRight:7}}>{d.icon}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:act?700:500,color:act?"#fff":"#7a9abf"}}>{b}</div>
+                  <div style={{fontSize:10,color:"#4a6a8a",marginTop:1}}>{dn}/{tot} · {p}%</div>
+                </div>
+                {dn===tot&&<span style={{fontSize:13}}>🏆</span>}
+              </div>
+              <div style={{marginTop:6,height:3,background:"#1a2740",borderRadius:2,overflow:"hidden"}}>
+                <div style={{height:"100%",width:p+"%",background:"linear-gradient(90deg,"+d.color+",#00A8E8)",transition:"width 0.5s"}}/>
+              </div>
+            </div>;
+          })}
+          <div style={{padding:"12px 14px",borderTop:"1px solid #111d2e",marginTop:"auto"}}>
+            <div style={{fontSize:9,color:"#2a4060",lineHeight:1.6}}>Results auto-saved to SharePoint after each passed quiz.</div>
+          </div>
+        </div>
+        <div style={S.content}>
+          <div style={S.bktHead}>
+            <div style={{fontSize:22,fontWeight:800,color:"#fff",marginBottom:6}}>{bData.icon} {bucket}</div>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{fontSize:26,fontWeight:900,color:"#00A8E8",lineHeight:1}}>{bPct}%</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:11,color:"#7a9abf",marginBottom:4}}>{bDone} of {bData.videos.length} videos complete</div>
+                <div style={{height:5,background:"#1a2740",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:bPct+"%",background:"linear-gradient(90deg,#0057A8,#00A8E8)",transition:"width 0.5s"}}/>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{display:"grid",gap:8}}>
+            {bData.videos.map((v,i)=>{
+              const dn=!!prog.done[v.id],sc=prog.scores[v.id],act=video?.id===v.id;
+              return<div key={v.id} style={S.vCard(dn,act)} onClick={()=>{setVideo(v);setQuiz(false);}}>
+                <div style={S.vNum(dn)}>{dn?"✓":i+1}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:dn?"#6abf8a":act?"#fff":"#cde",lineHeight:1.3}}>{v.title}</div>
+                  <div style={{fontSize:10,color:"#4a6a8a",marginTop:2}}>⏱ {v.dur}</div>
+                </div>
+                {sc!==undefined&&<span style={S.scoreTag(sc)}>{sc}/10</span>}
+                {!dn&&<div style={{fontSize:13,color:"#2a4060"}}>▶</div>}
+              </div>;
+            })}
+          </div>
+        </div>
+      </div>
+      {modal&&video&&<ResultsModal name={name} loc={loc} bucket={VIDEO_TO_BUCKET[video.id]} video={video.title} score={modal.score} pf={modal.pf} onDone={onModalDone}/>}
+      {cert&&<Certificate bucket={cert} name={name} onClose={()=>setCert(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
