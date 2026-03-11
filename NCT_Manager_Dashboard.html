@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NCT Manager Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.8.0/Recharts.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0f1a;font-family:'Arial Narrow',Arial,sans-serif;color:#e8edf5;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#0a0f1a}
+::-webkit-scrollbar-thumb{background:#1a2d4a;border-radius:3px}
+select{background:#111d2e;color:#e8edf5;border:1px solid #1a2d4a;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer}
+select option{background:#111d2e}
+input{background:#111d2e;color:#e8edf5;border:1px solid #1a2d4a;padding:6px 10px;border-radius:6px;font-size:12px;outline:none}
+input::placeholder{color:#4a6a8a}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#0d1526;color:#00A8E8;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:2px solid #1a2d4a;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:#fff}
+td{padding:9px 12px;border-bottom:1px solid #111d2e;color:#cde;vertical-align:middle}
+tr:hover td{background:rgba(0,87,168,0.1)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+const READ_URL = "https://default59a06fc107724344afce14075904b7.6b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/1c8b1ef15ac74d31bd938bfa170e006c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=MuEEYQvBjdx5HlsbBZtyhN3otztF0lkis779yD_Xexo";
+const LOGO_B64 = "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8ZBUVtscxlbCzGKDqgc9gexrv1utlpB0D6EKwC17xPY77Y6DMbzeaBzbresgrbjFTeYxzvIAbFTM6gSO8cTD3PYuO9egCPUHKGCY7N8G4tgN5dVVl3rrbHR2W1U7XVMlEG+fMAJGtMbS/oDidkg6GtE++bnCx2+4CiyPE8wxuSSgrK+B1zoI2tnjpYvNmDTHK/uGd++gdgb2QoFxrwxfaq6463OoLjT0drx6WSSSkujqeV91rat89SOunkDiGN6G/wA079TpeLMuIsopaDkmisthut7lrxSUmO11VefaJo6Gcx+3QM9om0wt6H/Kdou629yAQA2bQcwz19DT1tJxNyVLBURNlif8G0w6muAIPeoGtgj1W0R6fMtF4RhdFDlFqP8AFVntljpp2SMq6zMTPTwGP5TeuJta/rbtoHT0uB3ojW1vRAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREBERAREQEREH//Z";
+
+const LOCATIONS = ["All","Edmonton","Calgary","Kelowna","Langley","Winnipeg"];
+const BUCKETS   = ["All","Warehouse","Delivery","Management","Health & Safety"];
+const PF        = ["All","Pass","Fail"];
+
+async function fetchResults() {
+  const res = await fetch(READ_URL, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({}) });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  // Power Automate returns array directly or wrapped
+  const arr = Array.isArray(data) ? data : (data.value || []);
+  return arr.map(r => ({
+    name:     r.Title || r.fields?.Title || "",
+    location: r.Location || r.fields?.Location || "",
+    bucket:   r.TrainingBucket || r.fields?.TrainingBucket || "",
+    video:    r.VideoTitle || r.fields?.VideoTitle || "",
+    score:    Number(r.Score || r.fields?.Score || 0),
+    passFail: r.PassFail || r.fields?.PassFail || "",
+    date:     (r.DateCompleted || r.fields?.DateCompleted || "").substring(0,10),
+  }));
+}
+
+const BAR_COLORS = ["#0057A8","#00A8E8","#0073d1","#004A8C","#003D7A","#005FA3"];
+
+function KPI({label,value,sub,color}) {
+  return (
+    <div style={{background:"#0d1526",border:"1px solid #1a2d4a",borderRadius:10,padding:"18px 22px",flex:1,minWidth:140}}>
+      <div style={{fontSize:10,letterSpacing:3,color:"#4a6a8a",textTransform:"uppercase",marginBottom:6}}>{label}</div>
+      <div style={{fontSize:36,fontWeight:900,color:color||"#00A8E8",lineHeight:1}}>{value}</div>
+      {sub&&<div style={{fontSize:11,color:"#4a6a8a",marginTop:4}}>{sub}</div>}
+    </div>
+  );
+}
+
+function SimpleBar({data,dataKey,nameKey,color,height=200}) {
+  if(!data.length) return <div style={{color:"#4a6a8a",fontSize:12,padding:20,textAlign:"center"}}>No data</div>;
+  const max = Math.max(...data.map(d=>d[dataKey]),1);
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8,padding:"4px 0"}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:90,fontSize:11,color:"#7a9abf",textAlign:"right",flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d[nameKey]}</div>
+          <div style={{flex:1,background:"#1a2740",borderRadius:3,height:22,overflow:"hidden"}}>
+            <div style={{height:"100%",width:(d[dataKey]/max*100)+"%",background:`linear-gradient(90deg,${color||"#0057A8"},#00A8E8)`,borderRadius:3,transition:"width 0.6s",display:"flex",alignItems:"center",paddingLeft:6}}>
+              <span style={{fontSize:10,color:"#fff",fontWeight:700,whiteSpace:"nowrap"}}>{d[dataKey]}</span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function App() {
+  const [rows,setRows]       = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [error,setError]     = useState(null);
+  const [lastRefresh,setLastRefresh] = useState(null);
+
+  // Filters
+  const [fName,setFName]     = useState("");
+  const [fLoc,setFLoc]       = useState("All");
+  const [fBkt,setFBkt]       = useState("All");
+  const [fPF,setFPF]         = useState("All");
+  const [fDateFrom,setFDateFrom] = useState("");
+  const [fDateTo,setFDateTo]     = useState("");
+
+  // Table sort
+  const [sortCol,setSortCol] = useState("date");
+  const [sortDir,setSortDir] = useState("desc");
+
+  // Active tab
+  const [tab,setTab] = useState("overview");
+
+  async function load() {
+    setLoading(true); setError(null);
+    try {
+      const data = await fetchResults();
+      setRows(data);
+      setLastRefresh(new Date().toLocaleTimeString());
+    } catch(e) {
+      setError(e.message);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(()=>{ load(); },[]);
+
+  const filtered = useMemo(()=>{
+    return rows.filter(r=>{
+      if(fName && !r.name.toLowerCase().includes(fName.toLowerCase())) return false;
+      if(fLoc!=="All" && r.location!==fLoc) return false;
+      if(fBkt!=="All" && r.bucket!==fBkt) return false;
+      if(fPF!=="All" && r.passFail!==fPF) return false;
+      if(fDateFrom && r.date < fDateFrom) return false;
+      if(fDateTo   && r.date > fDateTo)   return false;
+      return true;
+    });
+  },[rows,fName,fLoc,fBkt,fPF,fDateFrom,fDateTo]);
+
+  const sorted = useMemo(()=>{
+    return [...filtered].sort((a,b)=>{
+      let av=a[sortCol], bv=b[sortCol];
+      if(sortCol==="score"){av=Number(av);bv=Number(bv);}
+      if(av<bv) return sortDir==="asc"?-1:1;
+      if(av>bv) return sortDir==="asc"?1:-1;
+      return 0;
+    });
+  },[filtered,sortCol,sortDir]);
+
+  function toggleSort(col){
+    if(sortCol===col) setSortDir(d=>d==="asc"?"desc":"asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  }
+
+  // KPIs
+  const total      = filtered.length;
+  const passed     = filtered.filter(r=>r.passFail==="Pass").length;
+  const passRate   = total ? Math.round(passed/total*100) : 0;
+  const uniqueEmps = new Set(filtered.map(r=>r.name)).size;
+  const avgScore   = total ? (filtered.reduce((a,r)=>a+r.score,0)/total).toFixed(1) : "—";
+
+  // Chart data
+  function groupBy(arr,key){
+    const m={};
+    arr.forEach(r=>{ m[r[key]]=(m[r[key]]||0)+1; });
+    return Object.entries(m).map(([k,v])=>({name:k,count:v})).sort((a,b)=>b.count-a.count);
+  }
+  function avgBy(arr,key){
+    const m={},c={};
+    arr.forEach(r=>{ m[r[key]]=(m[r[key]]||0)+r.score; c[r[key]]=(c[r[key]]||0)+1; });
+    return Object.entries(m).map(([k,v])=>({name:k,avg:Math.round(v/c[k]*10)/10})).sort((a,b)=>b.avg-a.avg);
+  }
+
+  const byLoc  = groupBy(filtered,"location");
+  const byBkt  = groupBy(filtered,"bucket");
+  const byEmp  = groupBy(filtered,"name").slice(0,10);
+  const scoreByLoc = avgBy(filtered,"location");
+
+  const tabStyle = active => ({
+    padding:"8px 18px",cursor:"pointer",fontSize:12,fontWeight:active?700:500,
+    color:active?"#fff":"#4a6a8a",borderBottom:active?"2px solid #00A8E8":"2px solid transparent",
+    background:"transparent",border:"none",letterSpacing:1,textTransform:"uppercase"
+  });
+
+  const cardStyle = {background:"#0d1526",border:"1px solid #1a2d4a",borderRadius:10,padding:18};
+
+  return (
+    <div style={{fontFamily:"'Arial Narrow',Arial,sans-serif",background:"#0a0f1a",minHeight:"100vh",color:"#e8edf5"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(135deg,#001F3F,#002a5c)",borderBottom:"3px solid #00A8E8",padding:"12px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <img src={"data:image/png;base64,"+LOGO_B64} style={{height:42,width:"auto",objectFit:"contain"}}/>
+          <div>
+            <div style={{fontSize:11,color:"#00A8E8",letterSpacing:3,textTransform:"uppercase",fontWeight:700}}>Manager Dashboard</div>
+            <div style={{fontSize:10,color:"#4a6a8a"}}>Safety Training Results — Live Data</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          {lastRefresh && <div style={{fontSize:10,color:"#4a6a8a"}}>Last refreshed: {lastRefresh}</div>}
+          <button onClick={load} style={{background:"linear-gradient(135deg,#0057A8,#00A8E8)",color:"#fff",border:"none",padding:"8px 18px",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{background:"#080d18",borderBottom:"1px solid #1a2d4a",padding:"12px 24px",display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{fontSize:10,color:"#4a6a8a",letterSpacing:2,textTransform:"uppercase",marginRight:4}}>Filters:</div>
+        <input placeholder="Employee name..." value={fName} onChange={e=>setFName(e.target.value)} style={{width:160}}/>
+        <select value={fLoc} onChange={e=>setFLoc(e.target.value)}>
+          {LOCATIONS.map(l=><option key={l}>{l}</option>)}
+        </select>
+        <select value={fBkt} onChange={e=>setFBkt(e.target.value)}>
+          {BUCKETS.map(b=><option key={b}>{b}</option>)}
+        </select>
+        <select value={fPF} onChange={e=>setFPF(e.target.value)}>
+          {PF.map(p=><option key={p}>{p}</option>)}
+        </select>
+        <input type="date" value={fDateFrom} onChange={e=>setFDateFrom(e.target.value)} title="From date"/>
+        <input type="date" value={fDateTo}   onChange={e=>setFDateTo(e.target.value)}   title="To date"/>
+        <button onClick={()=>{setFName("");setFLoc("All");setFBkt("All");setFPF("All");setFDateFrom("");setFDateTo("");}}
+          style={{background:"transparent",border:"1px solid #2a4060",color:"#7a9abf",padding:"6px 12px",borderRadius:6,fontSize:11,cursor:"pointer"}}>
+          Clear
+        </button>
+        <div style={{marginLeft:"auto",fontSize:11,color:"#4a6a8a"}}>{filtered.length} of {rows.length} records</div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{background:"#080d18",borderBottom:"1px solid #1a2d4a",padding:"0 24px",display:"flex",gap:4}}>
+        {[["overview","📊 Overview"],["charts","📈 Charts"],["table","📋 All Results"]].map(([t,l])=>(
+          <button key={t} style={tabStyle(tab===t)} onClick={()=>setTab(t)}>{l}</button>
+        ))}
+      </div>
+
+      <div style={{padding:24}}>
+        {loading && (
+          <div style={{textAlign:"center",padding:60}}>
+            <div style={{fontSize:40,marginBottom:12}}>⏳</div>
+            <div style={{color:"#7a9abf",fontSize:14}}>Loading training results...</div>
+          </div>
+        )}
+        {error && (
+          <div style={{background:"rgba(255,80,80,0.08)",border:"2px solid rgba(255,80,80,0.3)",borderRadius:10,padding:24,textAlign:"center"}}>
+            <div style={{fontSize:30,marginBottom:8}}>⚠️</div>
+            <div style={{color:"#ff6060",fontWeight:700,marginBottom:4}}>Could not load data</div>
+            <div style={{color:"#7a9abf",fontSize:12,marginBottom:16}}>{error}</div>
+            <button onClick={load} style={{background:"#0057A8",color:"#fff",border:"none",padding:"9px 22px",borderRadius:7,fontSize:13,cursor:"pointer"}}>Retry</button>
+          </div>
+        )}
+
+        {!loading && !error && tab==="overview" && (
+          <div style={{display:"flex",flexDirection:"column",gap:20}}>
+            {/* KPIs */}
+            <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+              <KPI label="Total Completions" value={total} sub="quiz passes recorded"/>
+              <KPI label="Employees Trained" value={uniqueEmps} sub="distinct names"/>
+              <KPI label="Pass Rate" value={passRate+"%"} sub={passed+" passed / "+(total-passed)+" failed"} color={passRate>=80?"#00c864":passRate>=60?"#f0a500":"#ff5050"}/>
+              <KPI label="Avg Score" value={avgScore+"/10"} sub="across all completions" color="#f0a500"/>
+              <KPI label="Locations Active" value={byLoc.length} sub="of 5 branches"/>
+            </div>
+
+            {/* Top charts row */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Completions by Location</div>
+                <SimpleBar data={byLoc} dataKey="count" nameKey="name" color="#0057A8"/>
+              </div>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Completions by Training Bucket</div>
+                <SimpleBar data={byBkt} dataKey="count" nameKey="name" color="#004A8C"/>
+              </div>
+            </div>
+
+            {/* Bottom row */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Top Employees by Completions</div>
+                <SimpleBar data={byEmp} dataKey="count" nameKey="name" color="#005FA3"/>
+              </div>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Avg Score by Location</div>
+                <SimpleBar data={scoreByLoc} dataKey="avg" nameKey="name" color="#003D7A"/>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && tab==="charts" && (
+          <div style={{display:"flex",flexDirection:"column",gap:20}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+              {[
+                {title:"By Location",data:byLoc,color:"#0057A8"},
+                {title:"By Bucket",data:byBkt,color:"#004A8C"},
+                {title:"By Employee (Top 10)",data:byEmp,color:"#005FA3"},
+              ].map(({title,data,color})=>(
+                <div key={title} style={cardStyle}>
+                  <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>{title}</div>
+                  <SimpleBar data={data} dataKey="count" nameKey="name" color={color}/>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Avg Score by Location</div>
+                <SimpleBar data={scoreByLoc} dataKey="avg" nameKey="name" color="#003D7A"/>
+              </div>
+              <div style={cardStyle}>
+                <div style={{fontSize:11,color:"#00A8E8",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:14}}>Pass vs Fail</div>
+                <SimpleBar data={[{name:"Pass",count:passed},{name:"Fail",count:total-passed}]} dataKey="count" nameKey="name" color="#0057A8"/>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && tab==="table" && (
+          <div style={cardStyle}>
+            <div style={{overflowX:"auto"}}>
+              <table>
+                <thead>
+                  <tr>
+                    {[["name","Employee"],["location","Location"],["bucket","Bucket"],["video","Video"],["score","Score"],["passFail","Result"],["date","Date"]].map(([col,lbl])=>(
+                      <th key={col} onClick={()=>toggleSort(col)}>
+                        {lbl} {sortCol===col?(sortDir==="asc"?"↑":"↓"):"↕"}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.length===0 && (
+                    <tr><td colSpan={7} style={{textAlign:"center",color:"#4a6a8a",padding:30}}>No results match current filters</td></tr>
+                  )}
+                  {sorted.map((r,i)=>(
+                    <tr key={i}>
+                      <td style={{fontWeight:600,color:"#fff"}}>{r.name}</td>
+                      <td>{r.location}</td>
+                      <td><span style={{background:"rgba(0,87,168,0.2)",padding:"2px 8px",borderRadius:12,fontSize:11}}>{r.bucket}</span></td>
+                      <td style={{maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.video}</td>
+                      <td style={{fontWeight:700,color:r.score>=7?"#00c864":"#ff5050"}}>{r.score}/10</td>
+                      <td><span style={{fontWeight:700,color:r.passFail==="Pass"?"#00c864":"#ff5050"}}>{r.passFail==="Pass"?"✅ Pass":"❌ Fail"}</span></td>
+                      <td style={{color:"#4a6a8a"}}>{r.date}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:12,fontSize:11,color:"#4a6a8a",textAlign:"right"}}>{sorted.length} records shown</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
